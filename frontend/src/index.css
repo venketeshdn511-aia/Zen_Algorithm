@@ -1,0 +1,143 @@
+@import "tailwindcss";
+
+:root {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+  line-height: 1.47;
+  font-weight: 400;
+
+  /* Theme Variables - Default Dark */
+  --bg-color: #000000;
+  --text-color: #f5f5f7;
+  --text-muted: #86868b;
+  --card-bg: #161617;
+  --card-hover: #1c1c1e;
+  --glass-bg: rgba(28, 28, 30, 0.65);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --hero-text-grad: white;
+
+  --apple-blue: #007aff;
+  --apple-green: #34c759;
+  --apple-red: #ff3b30;
+  --apple-orange: #ff9500;
+  --apple-indigo: #5856d6;
+
+  color-scheme: dark;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Performance Boost for 160 FPS */
+  --animation-curve: cubic-bezier(0.16, 1, 0.3, 1);
+  --gpu-accel: translate3d(0, 0, 0);
+}
+
+[data-theme="light"] {
+  --bg-color: #f5f5F7;
+  --text-color: #1d1d1f;
+  --text-muted: #86868b;
+  --card-bg: #ffffff;
+  --card-hover: #fbfbfd;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --border-color: rgba(0, 0, 0, 0.08);
+  --hero-text-grad: #1d1d1f;
+
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  overflow-x: hidden;
+  transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), color 0.5s ease;
+}
+
+/* Apple Pro Typography */
+h1,
+h2,
+h3,
+h4 {
+  letter-spacing: -0.022em;
+  font-weight: 700;
+}
+
+.hero-text {
+  font-size: 80px;
+  line-height: 1.05;
+  letter-spacing: -0.05em;
+  font-weight: 800;
+  background: var(--hero-text-grad);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.sub-hero-text {
+  font-size: 24px;
+  color: var(--text-muted);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* Translucent Island Controls */
+.glass-island {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
+}
+
+/* Bento Cards with Hover Depth */
+.apple-bento {
+  background: var(--card-bg);
+  border-radius: 28px;
+  border: 1px solid var(--border-color);
+  transition: transform 0.4s var(--animation-curve), background 0.3s ease, border-color 0.3s ease;
+  overflow: hidden;
+  will-change: transform, opacity;
+  transform: var(--gpu-accel);
+  contain: content;
+}
+
+.apple-bento:hover {
+  transform: scale(1.01);
+  background: var(--card-hover);
+  border-color: var(--apple-blue);
+}
+
+/* Custom transitions */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-transition-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.grid-cols-13 {
+  grid-template-columns: repeat(13, minmax(0, 1fr));
+}
+
+/* Hide scrollbar but keep functionality */
+::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
