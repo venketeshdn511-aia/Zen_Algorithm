@@ -205,28 +205,28 @@ const Performance = ({ tradingMode }) => {
     return (
         <div className="space-y-12 pb-20">
             <header className="space-y-4">
-                <h1 className="text-[56px] font-black tracking-tighter text-[var(--text-color)] leading-none">Performance.</h1>
-                <p className="text-[20px] text-[var(--text-muted)] font-medium max-w-xl">
+                <h1 className="text-[32px] md:text-[56px] font-black tracking-tighter text-[var(--text-color)] leading-none">Performance.</h1>
+                <p className="text-[16px] md:text-[20px] text-[var(--text-muted)] font-medium max-w-xl">
                     Quantitative audit of your algorithm's edge and historical stability.
                 </p>
             </header>
 
             {/* Main Equity Curve */}
-            <section className="apple-bento p-1 overflow-hidden shadow-2xl" style={{ transform: 'translate3d(0,0,0)' }}>
-                <div className="bg-[var(--card-bg)] p-12 min-h-[500px] flex flex-col">
+            <section className="apple-bento p-1 overflow-hidden shadow-2xl mx-1 md:mx-0" style={{ transform: 'translate3d(0,0,0)' }}>
+                <div className="bg-[var(--card-bg)] p-6 md:p-12 min-h-[400px] md:min-h-[500px] flex flex-col">
                     <div className="flex justify-between items-start mb-8">
                         <div>
                             <p className="text-[12px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Total Net Equity</p>
-                            <h2 className="text-4xl font-extrabold tracking-tight text-[var(--text-color)]">
+                            <h2 className="text-2xl md:text-4xl font-extrabold tracking-tight text-[var(--text-color)]">
                                 ₹{liveEquity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </h2>
                         </div>
-                        <div className="flex gap-4">
+                        <div className="flex flex-wrap gap-2 md:gap-4">
                             {['1D', '1W', '1M', '1Y', 'ALL'].map(t => (
                                 <button
                                     key={t}
                                     onClick={() => setTimeframe(t)}
-                                    className={`px-4 py-1.5 rounded-lg text-[11px] font-black transition-all ${timeframe === t ? 'bg-[var(--text-color)] text-[var(--bg-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-color)]'}`}
+                                    className={`px-3 md:px-4 py-1.5 rounded-lg text-[10px] md:text-[11px] font-black transition-all ${timeframe === t ? 'bg-[var(--text-color)] text-[var(--bg-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-color)]'}`}
                                 >
                                     {t}
                                 </button>
@@ -270,7 +270,7 @@ const Performance = ({ tradingMode }) => {
             {/* Metrics Chips */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {stats.map((stat, i) => (
-                    <div key={i} className="apple-bento p-8 border border-[var(--border-color)]">
+                    <div key={i} className="apple-bento p-6 md:p-8 border border-[var(--border-color)]">
                         <div className="flex justify-between items-start mb-4">
                             <div className="p-3 bg-[var(--bg-color)] rounded-xl border border-[var(--border-color)]">
                                 {stat.icon}
@@ -280,14 +280,14 @@ const Performance = ({ tradingMode }) => {
                             </span>
                         </div>
                         <p className="text-[12px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">{stat.label}</p>
-                        <p className="text-3xl font-black text-[var(--text-color)] tracking-tighter">{stat.value}</p>
+                        <p className="text-2xl md:text-3xl font-black text-[var(--text-color)] tracking-tighter">{stat.value}</p>
                     </div>
                 ))}
             </div>
 
             {/* Secondary Charts: Drawdown & Allocation */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="apple-bento p-10 space-y-8">
+                <div className="apple-bento p-6 md:p-10 space-y-6 md:space-y-8">
                     <div className="flex justify-between items-center">
                         <h3 className="text-xl font-bold tracking-tight text-[var(--text-color)]">Drawdown Profile</h3>
                         <div className={`text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border ${maxDrawdown > 5 ? 'text-[var(--apple-red)] bg-[var(--apple-red)]/10 border-[var(--apple-red)]/20' : 'text-[var(--text-muted)] bg-[var(--bg-color)] border-[var(--border-color)]'}`}>
@@ -321,7 +321,7 @@ const Performance = ({ tradingMode }) => {
                     </div>
                 </div>
 
-                <div className="apple-bento p-10 space-y-8 relative">
+                <div className="apple-bento p-6 md:p-10 space-y-6 md:space-y-8 relative">
                     <div className="flex justify-between items-center">
                         <h3 className="text-xl font-bold tracking-tight text-[var(--text-color)]">Live Allocation (Top 5)</h3>
                         <button
@@ -396,7 +396,7 @@ const Performance = ({ tradingMode }) => {
                             initial={{ scale: 0.9, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                            className="bg-[var(--card-bg)] w-full max-w-xl rounded-[32px] border border-[var(--border-color)] overflow-hidden shadow-2xl flex flex-col max-h-[80vh]"
+                            className="bg-[var(--card-bg)] w-full max-w-xl rounded-[24px] md:rounded-[32px] border border-[var(--border-color)] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
                         >
                             <div className="p-8 border-b border-[var(--border-color)] flex justify-between items-center bg-[#1c1c1e]/50">
                                 <div>

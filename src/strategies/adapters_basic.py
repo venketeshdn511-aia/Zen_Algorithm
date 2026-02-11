@@ -64,10 +64,10 @@ class EnhancedORBStrategy(BaseStrategy):
                 
                 spot_stop = pos.get('spot_stop', 0)
                 current_spot = float(df['close'].iloc[-1])
-                self.status = f"Long {symbol}: ₹{curr_premium:.1f} | Trail: {spot_stop:.0f}"
+                self.status = f"Long {symbol}: {curr_premium:.1f} | Trail: {spot_stop:.0f}"
                 
                 if self.check_spot_trailing_stop(df):
-                    self.status = f"Spot Trail Hit @ {spot_stop:.0f}. Exit at ₹{curr_premium:.1f}"
+                    self.status = f"Spot Trail Hit @ {spot_stop:.0f}. Exit at {curr_premium:.1f}"
                     self.close_trade(curr_premium, 'trailing_stop')
                     return
                 

@@ -56,7 +56,7 @@ class FyersPaperBroker:
         self.expiry_date = None
         
         # Note: Fyers connection is now lazy (happens in background thread)
-        self.logger.info(f"💰 Fyers Paper Trading initialized: ₹{initial_capital:,.2f} (Connection pending)")
+        self.logger.info(f" Fyers Paper Trading initialized: {initial_capital:,.2f} (Connection pending)")
 
     # === NEW: Slippage Modeling ===
     def _apply_slippage(self, price: float, side: str) -> float:
@@ -75,7 +75,7 @@ class FyersPaperBroker:
         slippage_amount = abs(slipped_price - price)
         self.stats['slippage_total'] += slippage_amount
         
-        self.logger.debug(f"📊 Slippage: {price:.2f} → {slipped_price:.2f} ({actual_slippage*100:.3f}%)")
+        self.logger.debug(f" Slippage: {price:.2f}  {slipped_price:.2f} ({actual_slippage*100:.3f}%)")
         
         return round(slipped_price, 2)
     
@@ -94,10 +94,10 @@ class FyersPaperBroker:
             except Exception as e:
                 self.stats['api_retries'] += 1
                 delay = base_delay * (multiplier ** attempt)
-                self.logger.warning(f"⚠️ API call failed (attempt {attempt+1}/{max_retries}): {e}. Retrying in {delay:.1f}s...")
+                self.logger.warning(f" API call failed (attempt {attempt+1}/{max_retries}): {e}. Retrying in {delay:.1f}s...")
                 time.sleep(delay)
         
-        self.logger.error(f"❌ API call failed after {max_retries} retries")
+        self.logger.error(f" API call failed after {max_retries} retries")
         return None
 
     def get_current_price(self, symbol, last_known_price=None):
@@ -178,19 +178,19 @@ class FyersPaperBroker:
             
             # For limit orders, check if market price is favorable
             if side == 'buy' and premium > price:
-                self.logger.info(f"⏳ LIMIT BUY pending: Market {premium:.2f} > Limit {price:.2f}")
+                self.logger.info(f" LIMIT BUY pending: Market {premium:.2f} > Limit {price:.2f}")
                 return {'status': 'pending', 'order_type': 'LIMIT', 'limit_price': price}
             elif side == 'sell' and premium < price:
-                self.logger.info(f"⏳ LIMIT SELL pending: Market {premium:.2f} < Limit {price:.2f}")
+                self.logger.info(f" LIMIT SELL pending: Market {premium:.2f} < Limit {price:.2f}")
                 return {'status': 'pending', 'order_type': 'LIMIT', 'limit_price': price}
             
             # Limit order can be filled at limit price
             execution_price = price
-            self.logger.info(f"✅ LIMIT order filled at {price:.2f}")
+            self.logger.info(f" LIMIT order filled at {price:.2f}")
         else:
             # MARKET ORDER: Apply slippage
             execution_price = self._apply_slippage(premium, side)
-            self.logger.debug(f"Market order: Premium {premium:.2f} → Execution {execution_price:.2f}")
+            self.logger.debug(f"Market order: Premium {premium:.2f}  Execution {execution_price:.2f}")
 
         # 5. Execute Logic
         total_shares = qty  # Expected to be absolute shares (lots * lot_size)
@@ -216,7 +216,7 @@ class FyersPaperBroker:
                 'type': option_type,
                 'entry_costs': entry_costs
             }
-            self.logger.info(f"📈 [BUY] {qty} lots {option_symbol} @ ₹{premium:.2f} | Costs: ₹{entry_costs:.2f}")
+            self.logger.info(f" [BUY] {qty} lots {option_symbol} @ {premium:.2f} | Costs: {entry_costs:.2f}")
 
         elif side == 'sell':
             # Closing position
@@ -234,7 +234,7 @@ class FyersPaperBroker:
                 pnl = exit_value - (pos['entry_price'] * pos['shares']) - pos['entry_costs'] - exit_costs
                 self.current_capital += (exit_value - exit_costs)
                 
-                self.logger.info(f"📉 [SELL] {option_symbol} @ ₹{exit_premium:.2f} | Net PnL: ₹{pnl:+.2f} (Total Costs: ₹{pos['entry_costs'] + exit_costs:.2f})")
+                self.logger.info(f" [SELL] {option_symbol} @ {exit_premium:.2f} | Net PnL: {pnl:+.2f} (Total Costs: {pos['entry_costs'] + exit_costs:.2f})")
                 
                 # Update stats...
                 del self.positions[option_symbol]
@@ -268,7 +268,7 @@ class FyersPaperBroker:
         # Minimum premium floor
         premium = max(premium, 10.0)
         
-        self.logger.info(f"📊 Using estimated premium for {strike}{otype}: ₹{premium:.2f} (market may be closed)")
+        self.logger.info(f" Using estimated premium for {strike}{otype}: {premium:.2f} (market may be closed)")
         
         return round(premium, 2)
 
@@ -302,7 +302,7 @@ class FyersPaperBroker:
         Supports partial exit if qty < position qty.
         """
         if option_symbol not in self.positions:
-            self.logger.warning(f"⚠️ Cannot close {option_symbol} - not found in positions")
+            self.logger.warning(f" Cannot close {option_symbol} - not found in positions")
             return False
             
         pos = self.positions[option_symbol]
@@ -325,7 +325,7 @@ class FyersPaperBroker:
         # Update Capital
         self.current_capital += (exit_premium * shares_to_close)
         
-        self.logger.info(f"📉 [SELL/CLOSE] {option_symbol} | Qty: {exit_qty} | @ ₹{exit_premium:.2f} | PnL: ₹{pnl:+.2f}")
+        self.logger.info(f" [SELL/CLOSE] {option_symbol} | Qty: {exit_qty} | @ {exit_premium:.2f} | PnL: {pnl:+.2f}")
         
         # Update stats
         self.stats['total_pnl'] += pnl
@@ -340,10 +340,16 @@ class FyersPaperBroker:
              # Partial Close
              self.positions[option_symbol]['qty'] -= exit_qty
              self.positions[option_symbol]['shares'] = self.positions[option_symbol]['qty'] * self.LOT_SIZE
-             self.logger.info(f"🔄 Partial Exit complete. Remaining: {self.positions[option_symbol]['qty']} lots")
+             self.logger.info(f" Partial Exit complete. Remaining: {self.positions[option_symbol]['qty']} lots")
         
         return True
         
+    def check_token_health(self):
+        """Proxy health check to underlying FyersBroker"""
+        if hasattr(self, 'fyers') and self.fyers:
+            return self.fyers.check_token_health()
+        return {"status": "error", "message": "FyersBroker not initialized"}
+
     def print_daily_summary(self):
         print(f"Capital: {self.current_capital}")
 

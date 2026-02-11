@@ -146,7 +146,7 @@ def test_telegram():
     chat_id = os.getenv('TELEGRAM_CHAT_ID')
     if bot_token and chat_id:
         url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-        requests.post(url, json={"chat_id": chat_id, "text": "🔔 Telegram Connection Verified!"}, timeout=5)
+        requests.post(url, json={"chat_id": chat_id, "text": " Telegram Connection Verified!"}, timeout=5)
         return jsonify({"status": "success", "message": "Telegram ping sent"})
     return jsonify({"status": "error", "message": "Credentials missing"})
 
@@ -173,7 +173,7 @@ def reset_brain_cooling():
 
 @app.route('/debug')
 def debug_app():
-    return "✅ Bot Core is Active"
+    return " Bot Core is Active"
 
 @app.route('/api/start')
 def start_trading():
@@ -189,7 +189,7 @@ def start_trading():
 @app.route('/api/stop')
 def stop_trading():
     engine = get_engine()
-    print(f"🛑 STOP REQUESTED", flush=True)
+    print(f" STOP REQUESTED", flush=True)
     engine.running = False
     engine.save_state()
     return jsonify({'status': 'stopped'})
@@ -367,6 +367,31 @@ def generate_report():
     pdf.output(report_path)
     
     return send_file(report_path, as_attachment=True)
+
+@app.route('/api/strategy/toggle', methods=['POST'])
+def toggle_strategy():
+    engine = get_engine()
+    data = request.json
+    strategy_name = data.get('strategy')
+    
+    if strategy_name:
+        strategy = next((s for s in engine.strategies if s.name == strategy_name), None)
+        if strategy:
+            # Toggle logic
+            new_state = not getattr(strategy, 'paused', False)
+            strategy.paused = new_state
+            
+            # Update overrides
+            engine.strategy_overrides[strategy.name] = 'PAUSED' if new_state else 'ACTIVE'
+            engine.save_state()
+            
+            return jsonify({
+                "status": "success", 
+                "message": f"Strategy {strategy_name} {'paused' if new_state else 'resumed'}",
+                "paused": new_state
+            })
+        return jsonify({"error": "Strategy not found"}), 404
+    return jsonify({"error": "Invalid parameters"}), 400
 
 if __name__ == '__main__':
     # For testing purposes only

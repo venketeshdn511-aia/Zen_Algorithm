@@ -49,3 +49,8 @@ def calculate_macd(series, fast=12, slow=26, signal=9):
     macd_line = ema_fast - ema_slow
     signal_line = macd_line.ewm(span=signal, adjust=False).mean()
     return macd_line, signal_line, macd_line - signal_line
+
+def calculate_vwap(df):
+    v = df['volume']
+    tp = (df['high'] + df['low'] + df['close']) / 3
+    return (tp * v).cumsum() / v.cumsum()

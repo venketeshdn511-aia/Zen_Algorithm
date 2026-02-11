@@ -63,8 +63,8 @@ class UnifiedEMACrossoverStrategy(StrategyInterface):
         is_ha_bullish = ha_close > ha_open
         is_ha_bearish = ha_close < ha_open
         
-        ha_color = "🟢 GREEN" if is_ha_bullish else "🔴 RED"
-        regime = "UP 📈" if curr_e9 > curr_e21 else "DOWN 📉"
+        ha_color = " GREEN" if is_ha_bullish else " RED"
+        regime = "UP " if curr_e9 > curr_e21 else "DOWN "
         
         # Update Dashboard Status with Live Data
         self.current_status = f"Nifty:{curr['Close']:.1f} | {ha_color} | E9:{curr_e9:.1f} E21:{curr_e21:.1f} | {regime}"

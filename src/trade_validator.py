@@ -11,7 +11,7 @@ class TradeValidator:
     1. Zone valid (price within supply/demand zone)
     2. HTF bias aligned (higher timeframe supports direction)
     3. Stop defined (stop-loss calculated and valid)
-    4. Risk ≤ target% (position size within risk limits)
+    4. Risk  target% (position size within risk limits)
     5. Trade classified (scalp or trend mode known)
     6. Exit plan known (TP targets calculated)
     """
@@ -56,7 +56,7 @@ class TradeValidator:
         if not self._check_stop_defined(stop_price, signal):
             failed_checks.append("STOP_NOT_DEFINED")
         
-        # 4. Risk ≤ Target %
+        # 4. Risk  Target %
         if not self._check_risk_limit(lots, signal, stop_price, capital, risk_pct, max_risk_pct):
             failed_checks.append("RISK_EXCEEDS_LIMIT")
         
@@ -71,9 +71,9 @@ class TradeValidator:
         is_valid = len(failed_checks) == 0
         
         if not is_valid and self.logger:
-            self.logger.warning(f"❌ Trade validation FAILED: {', '.join(failed_checks)}")
+            self.logger.warning(f" Trade validation FAILED: {', '.join(failed_checks)}")
         elif is_valid and self.logger:
-            self.logger.info("✅ Trade validation PASSED (all 6 checks OK)")
+            self.logger.info(" Trade validation PASSED (all 6 checks OK)")
         
         return is_valid, failed_checks
     
@@ -185,14 +185,14 @@ class TradeValidator:
         
         self.logger.info(
             f"\n"
-            f"╔══════════════════════════════════════╗\n"
-            f"║       PRE-TRADE CHECKLIST            ║\n"
-            f"╠══════════════════════════════════════╣\n"
-            f"║ ✓ Zone: {signal.get('zone_low', 0):.2f} - {signal.get('zone_high', 0):.2f}\n"
-            f"║ ✓ HTF Bias: {signal.get('action', '').upper()}\n"
-            f"║ ✓ Stop: {stop_price:.2f}\n"
-            f"║ ✓ Risk: ${risk_amount:.2f} ({risk_pct:.1f}%)\n"
-            f"║ ✓ Mode: {signal.get('mode', 'scalp').upper()}\n"
-            f"║ ✓ Exit: TP @ 1R/2R/3R\n"
-            f"╚══════════════════════════════════════╝"
+            f"\n"
+            f"       PRE-TRADE CHECKLIST            \n"
+            f"\n"
+            f"  Zone: {signal.get('zone_low', 0):.2f} - {signal.get('zone_high', 0):.2f}\n"
+            f"  HTF Bias: {signal.get('action', '').upper()}\n"
+            f"  Stop: {stop_price:.2f}\n"
+            f"  Risk: ${risk_amount:.2f} ({risk_pct:.1f}%)\n"
+            f"  Mode: {signal.get('mode', 'scalp').upper()}\n"
+            f"  Exit: TP @ 1R/2R/3R\n"
+            f""
         )

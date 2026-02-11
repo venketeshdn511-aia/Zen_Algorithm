@@ -85,18 +85,18 @@ class EMAPullback614Strategy(StrategyInterface):
         # Rule 2: Kill Zone
         current_ts = df.index[-1]
         if not self.detect_kill_zone(current_ts):
-            self.current_status = "☕ Resting. Outside Kill Zone (Market is a jungle right now)."
+            self.current_status = " Resting. Outside Kill Zone (Market is a jungle right now)."
             return None
             
         # Rule 1: Pullback to EMA8 (Low must touch/under EMA8 AND Close must be above)
         if not (price_15m_low <= ema_f and price_15m_close > ema_f):
-            self.current_status = f"🧐 Watching 15m trend. Waiting for a dip towards EMA8 ({ema_f:.1f}) to buy the fear."
+            self.current_status = f" Watching 15m trend. Waiting for a dip towards EMA8 ({ema_f:.1f}) to buy the fear."
             return None
             
         # Rule 3: 1m Confirmation (Bullish Candle)
         curr_1m = df_norm.iloc[-1]
         if curr_1m['Close'] <= curr_1m['Open']:
-            self.current_status = f"🔎 Bullish setup on 15m! Just waiting for a 1m green candle to confirm entry."
+            self.current_status = f" Bullish setup on 15m! Just waiting for a 1m green candle to confirm entry."
             return None
             
         # Signal Generated

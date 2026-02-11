@@ -119,7 +119,7 @@ class PositionTracker:
         
         if self.logger:
             self.logger.info(
-                f"📍 Position opened: {position_id} | {side.upper()} {qty} {symbol} "
+                f" Position opened: {position_id} | {side.upper()} {qty} {symbol} "
                 f"@ {entry_price:.2f}, Stop: {stop_price:.2f}"
             )
         
@@ -179,7 +179,7 @@ class PositionTracker:
         
         if self.logger:
             self.logger.info(
-                f"✂️ Partial exit: {position_id} | {tp_level} | "
+                f" Partial exit: {position_id} | {tp_level} | "
                 f"Exited {qty_exited}, Remaining {position.current_qty}"
             )
         
@@ -226,7 +226,7 @@ class PositionTracker:
         
         if self.logger:
             self.logger.info(
-                f"🔒 Position closed: {position_id} | {reason} | "
+                f" Position closed: {position_id} | {reason} | "
                 f"Total PnL: ${total_pnl:.2f}"
             )
     

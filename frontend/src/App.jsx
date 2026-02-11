@@ -68,7 +68,7 @@ function App() {
               {activeTab === 'Intelligence' && (
                 <div className="min-h-[60vh] flex items-center justify-center">
                   <div className="text-center space-y-8">
-                    <h2 className="text-[120px] font-extrabold tracking-tighter opacity-10">BRAIN</h2>
+                    <h2 className="text-[60px] md:text-[120px] font-extrabold tracking-tighter opacity-10">BRAIN</h2>
                     <h3 className="text-4xl font-bold tracking-tight">Intelligence Experience</h3>
                     <p className="text-[var(--text-muted)] text-xl max-w-lg mx-auto font-medium">
                       The neural core is currently optimizing for the next market session. Expanded insights coming shortly.
@@ -79,7 +79,7 @@ function App() {
               {!['Dashboard', 'Strategies', 'Performance', 'Settings', 'Intelligence'].includes(activeTab) && (
                 <div className="min-h-[60vh] flex items-center justify-center">
                   <div className="text-center space-y-8">
-                    <h2 className="text-[120px] font-extrabold tracking-tighter opacity-10">COMING</h2>
+                    <h2 className="text-[60px] md:text-[120px] font-extrabold tracking-tighter opacity-10">COMING</h2>
                     <h3 className="text-4xl font-bold tracking-tight">{activeTab} Experience</h3>
                   </div>
                 </div>

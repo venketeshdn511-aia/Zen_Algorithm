@@ -87,20 +87,20 @@ class EMACrossoverShort15m5mAdapter(BaseStrategy):
             status_msg = f"15m: {trend_status} (F:{ema_f:.0f}/S:{ema_s:.0f}) | Spot: {spot_price:.0f}"
             
             if not in_kill_zone:
-                status_msg += " | 💤 Outside Kill Zone"
+                status_msg += " |  Outside Kill Zone"
             elif ema_f >= ema_s:
-                status_msg += " | ❌ No Short Setup"
+                status_msg += " |  No Short Setup"
             elif spot_price >= ema_f or spot_price >= ema_s:
-                status_msg += " | ❌ Price above EMA"
+                status_msg += " |  Price above EMA"
             else:
                 # Setup is Valid!
                 # Check 5m Confirmation: Bearish Candle
                 row_5m = df_5m.iloc[-1]
                 is_bearish_5m = row_5m['close'] < row_5m['open']
                 if not is_bearish_5m:
-                    status_msg += " | ⏳ Waiting 5m Red Candle"
+                    status_msg += " |  Waiting 5m Red Candle"
                 else:
-                    status_msg += " | ✅ TRIGGER: Bearish 5m"
+                    status_msg += " |  TRIGGER: Bearish 5m"
                     # Execution
                     if self.broker:
                         # Stop Loss (Entry Candle Volatility)
@@ -113,7 +113,7 @@ class EMACrossoverShort15m5mAdapter(BaseStrategy):
                         # Selection: PE for Short
                         premium, symbol, strike = self.get_option_params(spot_price, 'sell', self.broker) # sell side means PE
                         if not premium:
-                            self.status = status_msg + " | ❌ Option Chain Error"
+                            self.status = status_msg + " |  Option Chain Error"
                             return
                         
                         premium_stop_dist = risk_per_share * 0.5
@@ -123,7 +123,7 @@ class EMACrossoverShort15m5mAdapter(BaseStrategy):
                         risk_amount = self.capital * self.risk_pct
                         lots = max(1, int(risk_amount / (premium_stop_dist * LOT_SIZE)))
                         
-                        self.status = f"🔻 Executing {symbol} @ {premium:.1f}"
+                        self.status = f" Executing {symbol} @ {premium:.1f}"
                         # Note: We buy PE for a Short setup in this engine's current structure
                         self.execute_trade(premium, 'buy', stop, target, lots * LOT_SIZE, symbol=symbol)
             
@@ -141,7 +141,7 @@ class EMACrossoverShort15m5mAdapter(BaseStrategy):
                 if not curr_premium: return
                 
                 spot_stop = pos.get('spot_stop', 0)
-                self.status = f"🔴 {symbol}: {curr_premium:.1f} | Trail: {spot_stop:.0f}"
+                self.status = f" {symbol}: {curr_premium:.1f} | Trail: {spot_stop:.0f}"
                 
                 if self.check_spot_trailing_stop(df):
                     self.close_trade(curr_premium, 'trailing_stop')

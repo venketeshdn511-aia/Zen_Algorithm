@@ -15,6 +15,7 @@ from fyers_apiv3 import fyersModel
 from src.core.base_strategy import INITIAL_CAPITAL, LOT_SIZE
 # from src.brokers.fyers_paper_broker import FyersPaperBroker # Removed
 from src.brokers.kotak_paper_broker import KotakPaperBroker
+from src.brokers.fyers_broker import FyersBroker
 from src.regime_detector import MarketRegimeGovernor
 from src.strategies.adapters_basic import (
     EnhancedORBStrategy, RSIPullbackStrategy, TripleEMAStrategy, 
@@ -32,7 +33,8 @@ from src.strategies.adapters_advanced_p2 import (
 )
 from src.strategies.ema_crossover_15m_1m_adapter import EMACrossover15m1mAdapter
 from src.strategies.ema_crossover_short_15m_5m_adapter import EMACrossoverShort15m5mAdapter
-from src.strategies.ema_crossover_short_15m_5m_adapter import EMACrossoverShort15m5mAdapter
+from src.strategies.failed_auction_strategy import FailedAuctionStrategy
+from src.strategies.amd_setup_strategy import AMDSetupStrategy
 
 # Optional Imports (Graceful Fallback)
 try:
@@ -65,7 +67,10 @@ class TradingEngine:
         # Initialize Kotak Paper Broker (Safe Wrapper)
         self.broker = KotakPaperBroker()
         
-        self.strategies = []
+        self.strategies = [
+            FailedAuctionStrategy(broker=self.broker),
+            AMDSetupStrategy(broker=self.broker)
+        ]
         
         self.df = None
         self.last_update = None
@@ -74,8 +79,15 @@ class TradingEngine:
         self.last_reset_date = None
         self.use_websocket = WS_AVAILABLE
         
-        print("🏛️ Initializing Market Regime Governor...")
-        self.governor = MarketRegimeGovernor(self.broker)
+        # Dedicated History Broker (Industrial Grade)
+        self.history_broker = FyersBroker()
+        try:
+            self.history_broker.connect()
+        except Exception:
+            print(" Warning: Fyers History Broker connection failed on init")
+
+        print("[INIT] Initializing Market Regime Governor...")
+        self.governor = MarketRegimeGovernor(self.history_broker)
         
         # Strategy Regime Mapping
         self.strategy_regimes = {}
@@ -93,23 +105,23 @@ class TradingEngine:
                     
                     # BAD TICK PROTECTION
                     if ltp <= 0:
-                        print(f"🚨 BAD TICK IGNORED: {symbol} LTP={ltp}")
+                        print(f" BAD TICK IGNORED: {symbol} LTP={ltp}")
                         continue
                     
                     # Reject if deviation > 30% from entry
                     if entry_price > 0:
                         deviation = abs(ltp - entry_price) / entry_price
                         if deviation > 0.30:
-                            print(f"🚨 BAD TICK IGNORED: {symbol} LTP={ltp} deviates {deviation*100:.1f}% from entry {entry_price}")
+                            print(f" BAD TICK IGNORED: {symbol} LTP={ltp} deviates {deviation*100:.1f}% from entry {entry_price}")
                             continue
                     
                     # NORMAL EXIT CHECKS
                     if pos['side'] == 'buy' and ltp >= pos['target']:
-                        print(f"⚡ Fast Exit: {strategy.name} Target Hit! LTP: {ltp}, Tgt: {pos['target']}")
+                        print(f" Fast Exit: {strategy.name} Target Hit! LTP: {ltp}, Tgt: {pos['target']}")
                         strategy.close_trade(ltp, 'target (Fast)')
                         continue
                     if pos['side'] == 'buy' and ltp <= pos['stop']:
-                        print(f"⚡ Fast Exit: {strategy.name} Stop Hit! LTP: {ltp}, Stop: {pos['stop']}")
+                        print(f" Fast Exit: {strategy.name} Stop Hit! LTP: {ltp}, Stop: {pos['stop']}")
                         strategy.close_trade(ltp, 'stop (Fast)')
                         continue
 
@@ -123,7 +135,7 @@ class TradingEngine:
                     logger=None
                 )
                 self.ws_handler.start()
-                print("🔌 WebSocket started with Fast Exit Trigger")
+                print("[WS] WebSocket started with Fast Exit Trigger")
             except Exception as e:
                 print(f"WebSocket init error: {e}")
                 self.use_websocket = False
@@ -131,10 +143,10 @@ class TradingEngine:
     def stop_websocket(self):
         if self.ws_handler:
             self.ws_handler.stop()
-            print("🔌 WebSocket stopped")
+            print(" WebSocket stopped")
 
     def _on_bar_complete(self, symbol, interval, bar):
-        print(f"📊 Bar Complete: {symbol} {interval}m - Close: {bar['close']}")
+        print(f" Bar Complete: {symbol} {interval}m - Close: {bar['close']}")
 
     def validate_token(self, token=None):
         """
@@ -206,9 +218,9 @@ class TradingEngine:
                         strategy.losses = saved.get('losses', 0)
                         if saved.get('position'):
                             strategy.position = saved.get('position')
-                            print(f"🔄 Recovered open position for {strategy.name}: {strategy.position['symbol']}")
+                            print(f" Recovered open position for {strategy.name}: {strategy.position['symbol']}")
                         strategy.trades = saved.get('trades', [])
-                        print(f"📊 Loaded {len(strategy.trades)} trades for {strategy.name}")
+                        print(f" Loaded {len(strategy.trades)} trades for {strategy.name}")
 
     def sync_run_status(self):
         try:
@@ -217,7 +229,7 @@ class TradingEngine:
                 if conf:
                     external_running = conf.get('running', False)
                     if not external_running and self.running:
-                        print("📉 External Stop Signal Detected (MongoDB)")
+                        print(" External Stop Signal Detected (MongoDB)")
                         self.running = False
             elif os.path.exists(DATA_FILE):
                 try:
@@ -225,7 +237,7 @@ class TradingEngine:
                         data = json.load(f)
                         external_running = data.get('running', False)
                         if not external_running and self.running:
-                             print("📉 External Stop Signal Detected (File)")
+                             print(" External Stop Signal Detected (File)")
                              self.running = False
                 except: pass
         except Exception: pass
@@ -256,54 +268,101 @@ class TradingEngine:
                 self.last_update = datetime.now(ist)
                 return True
             else:
-                 # print(f"⚠️ Data fetch failed via Broker") # Reduce spam
+                 # print(f" Data fetch failed via Broker") # Reduce spam
                  return False
 
         except Exception as e: 
-            print(f"❌ Data fetch error: {e}")
+            print(f" Data fetch error: {e}")
             return False
 
     def run_strategies(self):
         if not self.running: return
-        # ... (rest same) ...
+        
+        for strategy in self.strategies:
+            # Check for overrides
+            override = self.strategy_overrides.get(strategy.name)
+            if override == 'PAUSED':
+                strategy.paused = True
+            elif override == 'ACTIVE':
+                strategy.paused = False
+            
+            # Skip if paused
+            if hasattr(strategy, 'paused') and strategy.paused:
+                 if strategy.position:
+                     # Manage exit for paused strategies if needed, or just monitor
+                     pass
+                 continue
+
+            try:
+                # Pass market regime if strategy supports it
+                if hasattr(strategy, 'set_regime'):
+                    strategy.set_regime(self.governor.get_regime())
+                
+                strategy.process(self.df, len(self.df))
+            except Exception as e:
+                print(f" Strategy {strategy.name} error: {e}")
 
     # ...
 
     def preload_history(self):
         if not self.broker: return
-        print("🔄 Pre-loading history...")
+        print(f"[HISTORY] Pre-loading history (Industrial Warmup via Fyers API)... [DEBUG: Strategies={len(self.strategies)}]", flush=True)
         if not self.broker.connected:
              self.broker.connect()
+             
+        # Connect History Broker
+        if not self.history_broker.connected:
+             print("[HISTORY] Connecting History Broker...", flush=True)
+             self.history_broker.connect()
+             
         try:
-             # Use generic get_latest_bars
-             df = self.broker.get_latest_bars("NSE:NIFTY50-INDEX", timeframe='1', limit=1200)
-             if df is not None and not df.empty:
-                 # Ensure columns lower case
-                 df.columns = [c.lower() for c in df.columns]
-                 self.df = df
-                 ist = pytz.timezone('Asia/Kolkata')
-                 self.last_update = datetime.now(ist)
-                 print(f"✅ Historical data loaded: {len(df)} bars")
-                 if self.ws_handler:
-                     self.ws_handler.prime_history("NSE:NIFTY50-INDEX", df, 1)
-                 print("🔥 Warming up strategies...")
-                 for strategy in self.strategies:
-                     try: strategy.process(self.df, len(self.df))
-                     except Exception: pass
-                 print("✅ Strategies warmed.")
-             else: print("⚠️ No historical data.")
-        except Exception as e: print(f"❌ History pre-load error: {e}")
+            # Fetch Nifty 50 History for Warmup via Fyers (Professional Grade)
+            print("[HISTORY] Fetching Nifty 50 history (1200 bars)...", flush=True)
+            df = self.history_broker.get_latest_bars("NSE:NIFTY50-INDEX", timeframe='1', limit=1200)
+            
+            if df is not None and not df.empty:
+                print(f"[HISTORY] Data received: {len(df)} bars. Columns: {df.columns.tolist()}", flush=True)
+                # Ensure columns lower case
+                df.columns = [c.lower() for c in df.columns]
+                
+                # Prime the broker's aggregator
+                if hasattr(self.broker, 'prime_aggregator'):
+                    print("[HISTORY] Priming Broker Aggregator...", flush=True)
+                    self.broker.prime_aggregator("NSE:NIFTY50-INDEX", df)
+                
+                # Update Engine State
+                self.df = df
+                ist = pytz.timezone('Asia/Kolkata')
+                self.last_update = datetime.now(ist)
+                
+                print(f"[HISTORY] SUCCESS: Historical data loaded via Fyers: {len(df)} bars", flush=True)
+                print("[HISTORY] Warming up strategies...", flush=True)
+                for strategy in self.strategies:
+                    try: 
+                        print(f"   - Processing {strategy.name}...", flush=True)
+                        strategy.process(self.df, len(self.df))
+                        print(f"   - {strategy.name} Status Update: {strategy.status}", flush=True)
+                    except Exception as e: 
+                        print(f"   - {strategy.name} Warmup Error: {e}", flush=True)
+                        traceback.print_exc()
+                print("[HISTORY] SUCCESS: All strategies primed and ready.", flush=True)
+            else:
+                print("[HISTORY] WARNING: Fyers history returned no data.", flush=True)
+        except Exception as e:
+            print(f"[HISTORY] ERROR: History pre-load error: {e}", flush=True)
+            traceback.print_exc()
+            
         self.save_state()
 
     # ...
 
     def run(self):
-        print("🚀 Trading loop started!", flush=True)
+        print(" Trading loop started!", flush=True)
         if self.broker:
-            print("🔌 Connecting to Broker...")
+            print(" Connecting to Broker...")
             self.broker.connect()
             try:
-                print("🏛️ Fetching Market Regime...")
+                print(" Fetching Market Regime...")
                 self.governor.update_regime()
             except Exception as e: print(f"Regime init error: {e}")
             self.preload_history()
@@ -311,13 +370,13 @@ class TradingEngine:
         ist = pytz.timezone('Asia/Kolkata')
         from src.utils.notifications import send_telegram_message
         start_msg = (
-            f"⚡ <b>Trading Bot Online</b>\n"
-            f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"✅ <b>Status:</b> Active\n"
-            f"🛠️ <b>Strategies:</b> {len(self.strategies)}\n"
-            f"🕒 <b>Time:</b> {datetime.now(ist).strftime('%H:%M:%S')}\n"
-            f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"🚀 <i>Good luck with today's trades!</i>"
+            f" <b>Trading Bot Online</b>\n"
+            f"\n"
+            f" <b>Status:</b> Active\n"
+            f" <b>Strategies:</b> {len(self.strategies)}\n"
+            f" <b>Time:</b> {datetime.now(ist).strftime('%H:%M:%S')}\n"
+            f"\n"
+            f" <i>Good luck with today's trades!</i>"
         )
         send_telegram_message(start_msg)
 
@@ -335,30 +394,47 @@ class TradingEngine:
                 # Periodic token health check (every 6 hours)
                 hours_since_check = (now - last_token_check).total_seconds() / 3600
                 if hours_since_check >= 6:
-                    print(f"🔍 [{now.strftime('%H:%M:%S')}] Running token health check...")
+                    print(f" [{now.strftime('%H:%M:%S')}] Running token health check...")
                     try:
                         if self.broker:
                              health = self.broker.check_token_health()
                              if health.get('warnings'):
-                                 print(f"⚠️ Token health warnings: {health['warnings']}")
+                                 print(f" Token health warnings: {health['warnings']}")
                              else:
-                                 print("✅ Tokens are healthy")
+                                 print(" Tokens are healthy")
                         last_token_check = now
                     except Exception as e:
-                        print(f"❌ Token health check error: {e}")
+                        print(f" Token health check error: {e}")
                 
                 if loop_count % 10 == 0:
-                    print(f"⏰ [{now.strftime('%H:%M:%S')}] Heartbeat - Engine running: {self.running}", flush=True)
+                    print(f" [{now.strftime('%H:%M:%S')}] Heartbeat - Engine running: {self.running}", flush=True)
                 
                 market_time = now.hour * 100 + now.minute
+                
+                # 1. SHUTDOWN CHECK (15:15 PM)
+                if market_time >= 1515:
+                    print(f" [{now.strftime('%H:%M:%S')}] Market Closing Shift (15:15). Shutting down.")
+                    self.emergency_close_all()
+                    self.running = False
+                    break
+
+                # 2. MARKET HOURS CHECK (09:15 - 15:30)
                 if 915 <= market_time <= 1530:
                     if self.fetch_data():
                         if not self.running: break
-                        print(f"📊 [{now.strftime('%H:%M:%S')}] Data fetched...", flush=True)
+                        print(f" [{now.strftime('%H:%M:%S')}] Data fetched...", flush=True)
+                        
+                        # 3. WARMUP ONLY CHECK (Before 09:20)
+                        if market_time < 920:
+                            print(f" [{now.strftime('%H:%M:%S')}] Warmup Mode (No Trade Entries)")
+                            # We update indicators via fetch_data but skip strategy execution
+                            self.save_state()
+                            continue
+
                         self.run_strategies()
                         self.save_state()
                     else:
-                        if loop_count % 8 == 0: print(f"⚠️ [{now.strftime('%H:%M:%S')}] Data fetch failed")
+                        if loop_count % 8 == 0: print(f" [{now.strftime('%H:%M:%S')}] Data fetch failed")
                 else:
                     if loop_count % 20 == 0: print(f"[{now.strftime('%H:%M:%S')}] Outside market hours")
                 
@@ -366,7 +442,7 @@ class TradingEngine:
                     if not self.running: break
                     time.sleep(1)
             except Exception as e:
-                print(f"❌ Trading loop error: {e}")
+                print(f" Trading loop error: {e}")
                 traceback.print_exc()
                 for _ in range(30):
                     if not self.running: break
@@ -376,7 +452,7 @@ class TradingEngine:
 
     def get_portfolio_stats(self, mode='PAPER'):
         total_initial = INITIAL_CAPITAL * len(self.strategies)
-        print(f"📊 get_portfolio_stats: Mode={mode}, Strategies={len(self.strategies)}, Initial={total_initial}")
+        print(f" get_portfolio_stats: Mode={mode}, Strategies={len(self.strategies)}, Initial={total_initial}")
         
         # Base stats from strategies
         total_capital = sum(s.capital for s in self.strategies)
@@ -385,21 +461,21 @@ class TradingEngine:
         
         if mode == 'REAL':
             if not self.broker.connected:
-                print("🔌 REAL mode requested, connecting broker...")
+                print(" REAL mode requested, connecting broker...")
                 try:
                     self.broker.connect()
                 except Exception as e:
-                    print(f"❌ Broker connection failed: {e}")
+                    print(f" Broker connection failed: {e}")
             
             if self.broker.connected:
                 try:
                     real_bal = self.broker.get_real_balance()
-                    print(f"🎯 Real Balance Fetched: {real_bal}")
+                    print(f" Real Balance Fetched: {real_bal}")
                     total_capital = real_bal
                     total_pnl = 0 # In real mode, PnL is often relative to start of session or day
                     total_pnl_pct = 0
                 except Exception as e:
-                    print(f"❌ Real balance fetch failed: {e}")
+                    print(f" Real balance fetch failed: {e}")
         
         # Calculate Real Equity Curve from Trades
         equity_curve = []
@@ -419,7 +495,7 @@ class TradingEngine:
                     curr_eq += t.get('pnl', 0)
                     equity_curve.append({'x': i + 1, 'y': round(curr_eq, 2)})
             except Exception as e:
-                print(f"❌ Error building equity curve: {e}")
+                print(f" Error building equity curve: {e}")
         
         # Fallback if no trades or history
         if not equity_curve:
@@ -459,16 +535,16 @@ class TradingEngine:
         self.running = False
         self.last_reset_date = None
         self.strategy_overrides = {}
-        print("🔥 PERFORMING HARD RESET OF PORTFOLIO 🔥")
+        print(" PERFORMING HARD RESET OF PORTFOLIO ")
         if db_handler and db_handler.connected:
             try:
                 db_handler.db["strategy_states"].delete_many({})
                 db_handler.db["trades"].delete_many({})
                 db_handler.db["system_config"].delete_many({"_id": "bot_state"})
                 db_handler.db["brain_states"].delete_many({})
-                print("✅ Database cleared")
+                print(" Database cleared")
             except Exception as e:
-                print(f"❌ Database clear failed: {e}")
+                print(f" Database clear failed: {e}")
         if os.path.exists(DATA_FILE):
             try: os.remove(DATA_FILE)
             except: pass
@@ -483,7 +559,7 @@ class TradingEngine:
             strategy.trades = []
         
         self.save_state()
-        print("✅ Hard Reset Complete.")
+        print(" Hard Reset Complete.")
 
     def check_daily_reset(self):
         ist = pytz.timezone('Asia/Kolkata')
@@ -491,7 +567,7 @@ class TradingEngine:
         today_str = now.strftime("%Y-%m-%d")
         if self.last_reset_date != today_str:
             if now.hour >= 9:
-                print(f"🌅 Daily Reset performing for {today_str}...")
+                print(f" Daily Reset performing for {today_str}...")
                 for strategy in self.strategies:
                     strategy.daily_start_capital = strategy.capital
                 self.last_reset_date = today_str
@@ -499,28 +575,9 @@ class TradingEngine:
                 return True
         return False
         
-    def preload_history(self):
-        if not self.broker: return
-        print("🔄 Pre-loading history...")
-        try:
-             df = self.broker.get_latest_bars("NSE:NIFTY50-INDEX", timeframe='1', limit=1200)
-             if df is not None and not df.empty:
-                 df.columns = [c.lower() for c in df.columns]
-                 self.df = df
-                 ist = pytz.timezone('Asia/Kolkata')
-                 self.last_update = datetime.now(ist)
-                 print(f"✅ Historical data loaded: {len(df)} bars")
-                 print("🔥 Warming up strategies...")
-                 for strategy in self.strategies:
-                     try: strategy.process(self.df, len(self.df))
-                     except Exception: pass
-                 print("✅ Strategies warmed.")
-             else: print("⚠️ No historical data.")
-        except Exception as e: print(f"❌ History pre-load error: {e}")
-        self.save_state()
 
     def emergency_close_all(self):
-        print("\n🚨 EMERGENCY SHUTDOWN INITIATED 🚨")
+        print("\n EMERGENCY SHUTDOWN INITIATED ")
         self.running = False
         for strategy in self.strategies:
             if strategy.position:
@@ -529,6 +586,6 @@ class TradingEngine:
                     if symbol and self.broker:
                         self.broker.close_position(symbol)
                     strategy.close_trade(strategy.position.get('entry', 0), "SHUTDOWN_FORCE_CLOSE")
-                except Exception as e: print(f"❌ Failed to close {strategy.name}: {e}")
+                except Exception as e: print(f" Failed to close {strategy.name}: {e}")
         self.save_state()
-        print("🛑 All strategies halted.")
+        print(" All strategies halted.")

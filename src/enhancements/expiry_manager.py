@@ -123,7 +123,7 @@ class ExpiryWeekManager:
             dte = self.get_days_to_expiry(current_date)
             self.logger.info(f"Expiry Management: {dte:.1f} DTE | "
                            f"Zone: {rules['zone']} | "
-                           f"Size: {base_size} → {adjusted_size} "
+                           f"Size: {base_size}  {adjusted_size} "
                            f"({rules['size_multiplier']*100:.0f}%)")
         
         return adjusted_size

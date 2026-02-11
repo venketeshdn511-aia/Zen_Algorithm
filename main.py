@@ -23,7 +23,7 @@ logging.basicConfig(
     force=True
 )
 
-print("🚀 Starting Multi-Strategy Trading Engine (Refactored)...")
+print("[MAIN] Starting Multi-Strategy Trading Engine (Refactored)...")
 
 # Initialize Engine
 try:
@@ -35,12 +35,12 @@ try:
     # Expose app for Gunicorn
     application = app 
 except Exception as e:
-    print(f"❌ Critical Startup Error: {e}")
+    print(f" Critical Startup Error: {e}")
     traceback.print_exc()
     sys.exit(1)
 
 def signal_handler(sig, frame):
-    print(f"\n📢 Signal {sig} received. Shutting down...")
+    print(f"\n Signal {sig} received. Shutting down...")
     try:
         engine.running = False
         engine.emergency_close_all()
@@ -54,17 +54,17 @@ def main():
     try:
         # If running directly, start thread and server
         if engine.running: 
-            print("🔄 Auto-resuming trading loop...")
+            print(" Auto-resuming trading loop...")
             thread = threading.Thread(target=engine.run, daemon=True, name='trading_loop')
             thread.start()
             
         port = int(os.environ.get("PORT", 8080))
-        print(f"🌍 Dashboard available at http://localhost:{port}")
+        print(f" Dashboard available at http://localhost:{port}")
         
         # Disable Flask reloader to avoid duplicate threads
         app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
     except Exception as e:
-        print(f"❌ Main Loop Error: {e}")
+        print(f" Main Loop Error: {e}")
         traceback.print_exc()
 
 if __name__ == "__main__":

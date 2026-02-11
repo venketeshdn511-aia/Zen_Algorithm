@@ -12,17 +12,17 @@ export const TopBar = ({ tradingMode, onToggleMode, activeTab, setActiveTab }) =
     ];
 
     return (
-        <nav className="fixed top-6 left-0 right-0 z-50 px-6">
-            <div className="max-w-[1200px] mx-auto glass-island h-14 flex items-center justify-between px-6">
+        <nav className="fixed top-2 md:top-6 left-0 right-0 z-50 px-2 md:px-6">
+            <div className="max-w-[1200px] mx-auto glass-island h-12 md:h-14 flex items-center justify-between px-4 md:px-6">
                 <div className="flex items-center gap-8">
                     <div onClick={() => setActiveTab('Dashboard')} className="flex items-center gap-2 group cursor-pointer">
                         <Zap className="text-[var(--text-color)] fill-[var(--text-color)] group-hover:scale-110 transition-transform" size={20} />
                         <span className="text-[17px] font-bold tracking-tight text-[var(--text-color)]">AlgoBot Pro</span>
                     </div>
 
-                    <div className="h-4 w-[1px] bg-[var(--border-color)]" />
+                    <div className="hidden md:block h-4 w-[1px] bg-[var(--border-color)]" />
 
-                    <div className="flex gap-6 text-[13px] font-medium text-[var(--text-muted)]">
+                    <div className="hidden md:flex gap-6 text-[13px] font-medium text-[var(--text-muted)]">
                         {navItems.map(item => (
                             <button
                                 key={item.id}
@@ -54,8 +54,8 @@ export const TopBar = ({ tradingMode, onToggleMode, activeTab, setActiveTab }) =
                         </button>
                     </div>
 
-                    <button className="text-[var(--text-muted)] hover:text-[var(--text-color)] transition-colors"><Search size={18} /></button>
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 border border-[var(--border-color)] flex items-center justify-center text-[10px] font-bold text-white uppercase tracking-tighter">V</div>
+                    <button className="hidden md:block text-[var(--text-muted)] hover:text-[var(--text-color)] transition-colors"><Search size={18} /></button>
+                    <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 border border-[var(--border-color)] flex items-center justify-center text-[8px] md:text-[10px] font-bold text-white uppercase tracking-tighter">V</div>
                 </div>
             </div>
         </nav>
@@ -72,15 +72,15 @@ export const Dock = ({ activeTab, setActiveTab }) => {
     ];
 
     return (
-        <div className="fixed bottom-10 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
-            <div className="glass-island h-20 px-4 flex items-center gap-2 pointer-events-auto shadow-2xl">
+        <div className="fixed bottom-4 md:bottom-10 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
+            <div className="glass-island h-16 md:h-20 px-2 md:px-4 flex items-center gap-1 md:gap-2 pointer-events-auto shadow-2xl">
                 {items.map((item) => (
                     <motion.button
                         key={item.id}
                         whileHover={{ scale: 1.2, y: -10 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => setActiveTab(item.id)}
-                        className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center transition-all relative ${activeTab === item.id ? 'bg-[var(--text-color)] text-[var(--bg-color)] shadow-xl' : 'text-[var(--text-muted)] hover:text-[var(--text-color)]'
+                        className={`w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex flex-col items-center justify-center transition-all relative ${activeTab === item.id ? 'bg-[var(--text-color)] text-[var(--bg-color)] shadow-xl' : 'text-[var(--text-muted)] hover:text-[var(--text-color)]'
                             }`}
                     >
                         {item.icon}
@@ -89,12 +89,12 @@ export const Dock = ({ activeTab, setActiveTab }) => {
                         )}
                     </motion.button>
                 ))}
-                <div className="w-[1px] h-10 bg-[var(--border-color)] mx-2" />
+                <div className="hidden md:block w-[1px] h-10 bg-[var(--border-color)] mx-2" />
                 <motion.button
                     whileHover={{ scale: 1.2, y: -10 }}
-                    className="w-14 h-14 rounded-2xl bg-[#34c759]/10 text-[#34c759] flex items-center justify-center border border-[#34c759]/20"
+                    className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-[#34c759]/10 text-[#34c759] flex items-center justify-center border border-[#34c759]/20"
                 >
-                    <ShieldCheck size={26} />
+                    <ShieldCheck size={20} className="md:size-[26px]" />
                 </motion.button>
             </div>
         </div>

@@ -10,11 +10,11 @@ sys.path.append(os.getcwd())
 from src.db.mongodb_handler import get_db_handler
 
 def reset_overrides():
-    print("🔌 Connecting to MongoDB...")
+    print(" Connecting to MongoDB...")
     db = get_db_handler()
     
     if not db.connected:
-        print("❌ Not connected to MongoDB")
+        print(" Not connected to MongoDB")
         return
     
     # Reset strategy_overrides to empty dict
@@ -24,7 +24,7 @@ def reset_overrides():
         upsert=True
     )
     
-    print(f"✅ Reset all strategy overrides to AUTO")
+    print(f" Reset all strategy overrides to AUTO")
     print(f"   Modified: {result.modified_count}, Upserted: {result.upserted_id is not None}")
 
 if __name__ == "__main__":

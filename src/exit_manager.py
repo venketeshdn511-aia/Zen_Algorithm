@@ -94,7 +94,7 @@ class ExitManager:
                     
                     if self.logger:
                         self.logger.info(
-                            f"🎯 TP {level} HIT: Price={current_price:.2f} >= "
+                            f" TP {level} HIT: Price={current_price:.2f} >= "
                             f"Target={target_price:.2f}, exiting {exit_pct*100:.0f}%"
                         )
                     
@@ -106,7 +106,7 @@ class ExitManager:
                     
                     if self.logger:
                         self.logger.info(
-                            f"🎯 TP {level} HIT: Price={current_price:.2f} <= "
+                            f" TP {level} HIT: Price={current_price:.2f} <= "
                             f"Target={target_price:.2f}, exiting {exit_pct*100:.0f}%"
                         )
                     
@@ -164,8 +164,8 @@ class ExitManager:
         # Log if stop moved
         if new_stop != current_trailing and self.logger:
             self.logger.info(
-                f"📈 Trailing stop updated ({side.upper()}): "
-                f"{current_trailing:.2f} → {new_stop:.2f}"
+                f" Trailing stop updated ({side.upper()}): "
+                f"{current_trailing:.2f}  {new_stop:.2f}"
             )
         
         return new_stop
@@ -198,7 +198,7 @@ class ExitManager:
         if current_time.time() >= eod_time:
             if self.logger:
                 self.logger.warning(
-                    f"⏰ EOD EXIT: Current time {current_time.strftime('%H:%M')} >= "
+                    f" EOD EXIT: Current time {current_time.strftime('%H:%M')} >= "
                     f"EOD cutoff {eod_time_str}"
                 )
             return True

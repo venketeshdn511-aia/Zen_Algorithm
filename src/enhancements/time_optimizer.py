@@ -138,7 +138,7 @@ class TimeOfDayOptimizer:
         adjusted_size = int(base_size * rules['risk_multiplier'])
         
         if self.logger and adjusted_size != base_size:
-            self.logger.info(f"Position size adjusted: {base_size} → {adjusted_size} "
+            self.logger.info(f"Position size adjusted: {base_size}  {adjusted_size} "
                            f"({rules['risk_multiplier']*100:.0f}% due to {rules['window']})")
         
         return adjusted_size

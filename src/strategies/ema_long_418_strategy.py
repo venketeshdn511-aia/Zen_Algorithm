@@ -91,25 +91,25 @@ class EMACrossoverLong418Strategy(StrategyInterface):
         # Rule 3: Kill Zone
         current_ts = df.index[-1]
         if not self.detect_kill_zone(current_ts):
-            self.current_status = "☕ Coffee break. Outside Kill Zone (Waiting for the institutional surge)."
+            self.current_status = " Coffee break. Outside Kill Zone (Waiting for the institutional surge)."
             return None
             
         # Rule 1: Fast > Slow
         if ema_f <= ema_s:
             if self.fresh_crossover_only:
                 self.last_trade_trend = None
-            self.current_status = f"🧐 Trend is Neutral/Bearish. Waiting for EMA20 ({ema_f:.1f}) to cross above EMA50 ({ema_s:.1f})."
+            self.current_status = f" Trend is Neutral/Bearish. Waiting for EMA20 ({ema_f:.1f}) to cross above EMA50 ({ema_s:.1f})."
             return None
             
         # Rule 2: Price > Both
         if price_5m <= ema_f or price_5m <= ema_s:
-            self.current_status = f"📉 Bullish cross confirmed, but price ({price_5m:.1f}) is taking a breather. Waiting for it to climb back above EMAs."
+            self.current_status = f" Bullish cross confirmed, but price ({price_5m:.1f}) is taking a breather. Waiting for it to climb back above EMAs."
             return None
             
         # Rule 4: 1m Confirmation (Bullish Candle)
         curr_1m = df.iloc[-1]
         if curr_1m['Close'] <= curr_1m['Open']:
-            self.current_status = f"🔎 SETUP READY! High conviction on 5m. Just waiting for the next 1m green candle to fire entry."
+            self.current_status = f" SETUP READY! High conviction on 5m. Just waiting for the next 1m green candle to fire entry."
             return None
             
         # Signal Generated

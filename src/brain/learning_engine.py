@@ -82,7 +82,7 @@ class LearningEngine:
         # Load saved state
         self.load_state()
         
-        self.logger.info(f"🧠 Brain initialized with {self.state['trade_count']} recorded trades")
+        self.logger.info(f" Brain initialized with {self.state['trade_count']} recorded trades")
     
     def _default_state(self) -> Dict:
         """Default brain state structure."""
@@ -152,7 +152,7 @@ class LearningEngine:
                     ml_path = self.data_dir / "ml_model.pkl"
                     self.ml_predictor.load(str(ml_path))
                 
-                self.logger.info(f"🧠 Brain state loaded from {source}: {len(self.state.get('trade_history', []))} trades in history")
+                self.logger.info(f" Brain state loaded from {source}: {len(self.state.get('trade_history', []))} trades in history")
                 return True
                 
         except Exception as e:
@@ -240,7 +240,7 @@ class LearningEngine:
         # Save state
         self.save_state()
         
-        self.logger.info(f"🧠 Trade recorded: {trade.get('strategy', 'Unknown')} PnL: ₹{trade_pnl:.2f}")
+        self.logger.info(f" Trade recorded: {trade.get('strategy', 'Unknown')} PnL: {trade_pnl:.2f}")
     
     def _trigger_cooling_off(self, consecutive_losses: int):
         """Trigger cooling-off period after losing streak."""
@@ -248,7 +248,7 @@ class LearningEngine:
         minutes = self.COOLING_OFF_MINUTES + (consecutive_losses - 3) * 10  # Extra time for longer streaks
         self.cooling_off_until = datetime.now(ist) + timedelta(minutes=minutes)
         
-        self.logger.warning(f"🧠 Cooling-off triggered for {minutes} mins ({consecutive_losses} consecutive losses)")
+        self.logger.warning(f" Cooling-off triggered for {minutes} mins ({consecutive_losses} consecutive losses)")
     
     def _update_strategy_adjustments(self, trade: Dict):
         """Update learned parameter adjustments for strategies."""

@@ -110,7 +110,7 @@ class Phase1Enhancer:
         enhanced_signal = f"{signal_raw}_{signal_mode}"
         
         if self.logger:
-            self.logger.info(f"✅ Phase1 Enhanced Signal: {enhanced_signal} | "
+            self.logger.info(f" Phase1 Enhanced Signal: {enhanced_signal} | "
                            f"Filters Passed: {self.stats['signals_generated'] - self.stats['signals_filtered']} / "
                            f"{self.stats['signals_generated']}")
         
@@ -216,7 +216,7 @@ class Phase1Enhancer:
         self.stats['filter_reasons'][filter_name] += 1
         
         if self.logger:
-            self.logger.warning(f"❌ Filtered by {filter_name}: {reason}")
+            self.logger.warning(f" Filtered by {filter_name}: {reason}")
     
     def get_stats(self):
         """Get enhancement statistics"""

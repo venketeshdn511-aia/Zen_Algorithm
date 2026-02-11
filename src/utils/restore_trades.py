@@ -23,21 +23,21 @@ def restore_trades():
     """
     Fetches trade history from MongoDB and reconstructs strategy_data.json
     """
-    logger.info("🔌 Connecting to MongoDB...")
+    logger.info(" Connecting to MongoDB...")
     db = MongoDBHandler()
     
     if not db.connected:
-        logger.error("❌ Failed to connect to MongoDB. Cannot restore data.")
+        logger.error(" Failed to connect to MongoDB. Cannot restore data.")
         return
 
-    logger.info("📥 Fetching recent trades from Atlas...")
+    logger.info(" Fetching recent trades from Atlas...")
     trades = db.get_recent_trades(limit=500) # Fetch last 500 trades
     
     if not trades:
-        logger.warning("⚠️ No trades found in MongoDB.")
+        logger.warning(" No trades found in MongoDB.")
         return
 
-    logger.info(f"✅ Found {len(trades)} trades. Grouping by strategy...")
+    logger.info(f" Found {len(trades)} trades. Grouping by strategy...")
 
     # Group trades by strategy
     strategy_trades = {}
@@ -58,9 +58,9 @@ def restore_trades():
         try:
             with open('strategy_data.json', 'r') as f:
                 local_data = json.load(f)
-                logger.info("📂 Loaded existing local state.")
+                logger.info(" Loaded existing local state.")
         except Exception as e:
-            logger.warning(f"⚠️ Could not load existing local state: {e}")
+            logger.warning(f" Could not load existing local state: {e}")
 
     # Update strategies in local state
     if 'strategies' not in local_data:
@@ -78,7 +78,7 @@ def restore_trades():
         if strat_name in existing_strats:
             # Update existing
             existing_strats[strat_name]['trades'] = trades_list
-            logger.info(f"🔄 Restored {len(trades_list)} trades for {strat_name}")
+            logger.info(f" Restored {len(trades_list)} trades for {strat_name}")
             updated_count += 1
         else:
             # Create new entry if missing (less likely but possible)
@@ -91,16 +91,16 @@ def restore_trades():
                 'losses': sum(1 for t in trades_list if t.get('pnl', 0) <= 0)
             }
             local_data['strategies'].append(new_strat)
-            logger.info(f"➕ Created new state entry for {strat_name} with {len(trades_list)} trades")
+            logger.info(f" Created new state entry for {strat_name} with {len(trades_list)} trades")
             updated_count += 1
 
     # Save back to strategy_data.json
     try:
         with open('strategy_data.json', 'w') as f:
             json.dump(local_data, f, indent=2)
-        logger.info(f"💾 Successfully saved restored data to strategy_data.json")
+        logger.info(f" Successfully saved restored data to strategy_data.json")
     except Exception as e:
-        logger.error(f"❌ Failed to write strategy_data.json: {e}")
+        logger.error(f" Failed to write strategy_data.json: {e}")
 
 if __name__ == "__main__":
     restore_trades()

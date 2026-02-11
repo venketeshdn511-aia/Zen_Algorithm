@@ -1,4 +1,4 @@
-# ⚠️ WARNING: This code was NOT fully verified against backtest.
+#  WARNING: This code was NOT fully verified against backtest.
 # The PnL may differ slightly from the PDF report.
 # Please review and test before using in production.
 # ======================================================================
@@ -250,21 +250,21 @@ class EMA_Crossover_Long_15m_1m_191_Strategy:
         rsi_healthy = rsi_val > 30
 
         if not trend_bullish:
-            self._status = f"🛑 Bearish regime (EMA 13 < 21). Waiting for a bullish crossover to buy."
+            self._status = f" Bearish regime (EMA 13 < 21). Waiting for a bullish crossover to buy."
         elif not above_emas:
-            self._status = f"📈 Bullish trend active. Waiting for price to break above EMAs ({ema_f:.1f}) to enter."
+            self._status = f" Bullish trend active. Waiting for price to break above EMAs ({ema_f:.1f}) to enter."
         elif not rsi_healthy:
-            self._status = f"⚠️ RSI is Oversold ({rsi_val:.1f} < 30). Waiting for momentum to return."
+            self._status = f" RSI is Oversold ({rsi_val:.1f} < 30). Waiting for momentum to return."
         else:
             # Check entry through standard rules
             res = self.check_entry(df['open'].values, df['close'].values, df['high'].values, df['low'].values, ind, idx, df.index)
             if res == 'LONG':
                 risk = max(abs(price - df['low'].iloc[idx]), abs(df['high'].iloc[idx] - price))
                 self.last_signal_data = {'risk': risk, 'target_rr': self.risk_reward}
-                self._status = f"🎯 SETUP FOUND! Bullish breakout confirmed at {price:.2f}. Entering Long."
+                self._status = f" SETUP FOUND! Bullish breakout confirmed at {price:.2f}. Entering Long."
                 return 'buy'
             else:
-                self._status = f"🔍 Price above EMAs in bullish trend. Monitoring for strong breakout confirmation in Kill Zone..."
+                self._status = f" Price above EMAs in bullish trend. Monitoring for strong breakout confirmation in Kill Zone..."
 
         return None
         

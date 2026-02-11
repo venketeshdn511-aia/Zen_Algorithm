@@ -294,6 +294,6 @@ class BearishBreakerStrategy(StrategyInterface):
             'risk': risk
         }
         
-        self.current_status = f"🔴 SHORT SIGNAL: Bearish Breaker Retest @ {entry_price:.2f}"
+        self.current_status = f" SHORT SIGNAL: Bearish Breaker Retest @ {entry_price:.2f}"
         return 'sell'
 

@@ -67,7 +67,7 @@ class MongoDBHandler:
                         )
                         self.client.admin.command('ping')
                         connection_successful = True
-                        print("✅ Connected with certifi CA")
+                        print(" Connected with certifi CA")
                     except Exception as e1:
                         print(f"Certifi strategy failed: {e1}")
                 
@@ -82,7 +82,7 @@ class MongoDBHandler:
                         )
                         self.client.admin.command('ping')
                         connection_successful = True
-                        print("✅ Connected with relaxed SSL")
+                        print(" Connected with relaxed SSL")
                     except Exception as e2:
                         print(f"Relaxed SSL strategy failed: {e2}")
                 
@@ -99,26 +99,26 @@ class MongoDBHandler:
                         )
                         self.client.admin.command('ping')
                         connection_successful = True
-                        print("✅ Connected with direct connection")
+                        print(" Connected with direct connection")
                     except Exception as e3:
                         print(f"Direct connection strategy failed: {e3}")
                 
                 if connection_successful:
                     self.db = self.client[self.db_name]
                     self.connected = True
-                    print(f"✅ Connected to MongoDB Atlas: {self.db_name}")
+                    print(f" Connected to MongoDB Atlas: {self.db_name}")
                     return True
                 else:
                     raise Exception("All connection strategies failed")
             except Exception as e:
-                print(f"⚠️ MongoDB connection failed: {e}")
+                print(f" MongoDB connection failed: {e}")
                 self.connected = False
                 return False
         else:
             if not MONGO_AVAILABLE:
-                print("⚠️ pymongo not installed. Using local JSON storage.")
+                print(" pymongo not installed. Using local JSON storage.")
             else:
-                print("⚠️ No MONGODB_URI provided. Using local JSON storage.")
+                print(" No MONGODB_URI provided. Using local JSON storage.")
             return False
     
     def _stringify_ids(self, obj):

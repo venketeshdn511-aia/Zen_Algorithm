@@ -50,7 +50,7 @@ class TradeJournal:
         self.state = self._load_json(self.state_file, {})
         self.stats = self._load_json(self.stats_file, self._default_stats())
         
-        self.logger.info(f"📁 TradeJournal initialized: {self.data_dir}")
+        self.logger.info(f" TradeJournal initialized: {self.data_dir}")
         self.logger.info(f"   Loaded {len(self.trades)} historical trades")
     
     def _default_stats(self) -> Dict:
@@ -143,7 +143,7 @@ class TradeJournal:
         self._save_json(self.trades_file, self.trades)
         self._save_json(self.stats_file, self.stats)
         
-        self.logger.info(f"📝 Trade logged: {symbol} {strike}{option_type} | PnL: ₹{pnl:+.2f}")
+        self.logger.info(f" Trade logged: {symbol} {strike}{option_type} | PnL: {pnl:+.2f}")
         
         return True
     
@@ -287,7 +287,7 @@ class TradeJournal:
     
     def format_report(self, report: Dict, title: str = "Report") -> str:
         """Format report for display/Telegram."""
-        lines = [f"📊 *{title}*", "─" * 20]
+        lines = [f" *{title}*", "" * 20]
         
         for key, value in report.items():
             if key in ["period", "date", "message"]:
@@ -298,7 +298,7 @@ class TradeJournal:
             
             # Format value
             if "pnl" in key.lower() or "trade" in key.lower() and isinstance(value, (int, float)):
-                formatted = f"₹{value:+,.2f}" if "pnl" in key.lower() else str(value)
+                formatted = f"{value:+,.2f}" if "pnl" in key.lower() else str(value)
             elif "rate" in key.lower() or "factor" in key.lower():
                 formatted = f"{value:.1f}%" if "rate" in key.lower() else f"{value:.2f}"
             else:

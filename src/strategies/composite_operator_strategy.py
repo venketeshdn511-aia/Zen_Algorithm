@@ -177,7 +177,7 @@ class CompositeOperatorStrategy(StrategyInterface):
                 'rel_vol': row['rel_vol']
             }
             
-            self.current_status = f"🟢 BUY SIGNAL: {pattern_name} @ {entry_price:.2f}"
+            self.current_status = f" BUY SIGNAL: {pattern_name} @ {entry_price:.2f}"
             return 'buy'
             
         self.current_status = f"Monitoring.. Vol: {row['rel_vol']:.1f}x | RSI: {row['rsi']:.0f} | <VWAP: {is_below_vwap}"

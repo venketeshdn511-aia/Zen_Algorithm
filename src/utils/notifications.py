@@ -40,6 +40,6 @@ def send_telegram_message(message):
         response = session.post(url, json=payload, timeout=10)
         response.raise_for_status()
     except Exception as e:
-        print(f"❌ Telegram send error: {e}")
+        print(f" Telegram send error: {e}")
     finally:
         session.close()

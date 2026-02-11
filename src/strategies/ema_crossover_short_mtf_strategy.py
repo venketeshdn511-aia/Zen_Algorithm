@@ -247,21 +247,21 @@ class EMA_Crossover_Short_15m_1m_TSL_0_Strategy:
             below_vwap = price <= (vwap_val * 1.0015)
 
         if not trend_bearish:
-            self._status = f"🛑 Bullish regime (EMA 13 > 200). Waiting for price to break below Slow EMA to flip short."
+            self._status = f" Bullish regime (EMA 13 > 200). Waiting for price to break below Slow EMA to flip short."
         elif not below_emas:
-            self._status = f"📉 Trend is Bearish. Waiting for price to break below fast EMAs ({ema_f:.1f}) to enter."
+            self._status = f" Trend is Bearish. Waiting for price to break below fast EMAs ({ema_f:.1f}) to enter."
         elif not below_vwap:
-            self._status = f"⚠️ Price is above VWAP ({price:.1f} > {vwap_val:.1f}). Entry risky at current premiums."
+            self._status = f" Price is above VWAP ({price:.1f} > {vwap_val:.1f}). Entry risky at current premiums."
         else:
             # Check entry through standard rules
             res = self.check_entry(df['open'].values, df['close'].values, df['high'].values, df['low'].values, ind, idx, df.index)
             if res == 'SHORT':
                 risk = max(abs(price - df['low'].iloc[idx]), abs(df['high'].iloc[idx] - price))
                 self.last_signal_data = {'risk': risk, 'target_rr': self.risk_reward}
-                self._status = f"🎯 SETUP FOUND! Price below EMA 13 in Bearish trend. Entering Short at {price:.2f}."
+                self._status = f" SETUP FOUND! Price below EMA 13 in Bearish trend. Entering Short at {price:.2f}."
                 return 'buy'
             else:
-                self._status = f"🔍 Bearish setup active. Monitoring for persistent downside momentum..."
+                self._status = f" Bearish setup active. Monitoring for persistent downside momentum..."
 
         return None
         

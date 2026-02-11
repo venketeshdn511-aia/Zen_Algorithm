@@ -15,22 +15,22 @@ from src.db.mongodb_handler import MongoDBHandler
 INITIAL_CAPITAL = 15000.0
 
 def recalculate_and_push():
-    print("🔌 Connecting to MongoDB Atlas...")
+    print(" Connecting to MongoDB Atlas...")
     db = MongoDBHandler()
     
     if not db.connected:
-        print("❌ Failed to connect to MongoDB.")
+        print(" Failed to connect to MongoDB.")
         return False
 
     # Load local JSON
     if not os.path.exists('strategy_data.json'):
-        print("❌ No local strategy_data.json found!")
+        print(" No local strategy_data.json found!")
         return False
         
     with open('strategy_data.json', 'r') as f:
         local_data = json.load(f)
     
-    print(f"📄 Processing {len(local_data.get('strategies', []))} strategies...")
+    print(f" Processing {len(local_data.get('strategies', []))} strategies...")
     
     for s in local_data.get('strategies', []):
         # Calculate total PnL from trades
@@ -55,22 +55,22 @@ def recalculate_and_push():
         s['losses'] = losses
         s['daily_start_capital'] = s.get('daily_start_capital', INITIAL_CAPITAL)
         
-        print(f"   {s['name']}: {len(s.get('trades', []))} trades, PnL: ₹{total_pnl:.2f}, Capital: ₹{old_capital:.2f} → ₹{new_capital:.2f}")
+        print(f"   {s['name']}: {len(s.get('trades', []))} trades, PnL: {total_pnl:.2f}, Capital: {old_capital:.2f}  {new_capital:.2f}")
     
     # Save locally first
     with open('strategy_data.json', 'w') as f:
         json.dump(local_data, f, indent=2)
-    print("💾 Updated local strategy_data.json")
+    print(" Updated local strategy_data.json")
     
     # Push to MongoDB
-    print("📤 Pushing corrected data to MongoDB...")
+    print(" Pushing corrected data to MongoDB...")
     success = db.save_strategy_state(local_data.get('strategies', []))
     
     if success:
-        print("✅ Successfully pushed corrected capitals to MongoDB!")
+        print(" Successfully pushed corrected capitals to MongoDB!")
         return True
     else:
-        print("❌ Failed to push to MongoDB")
+        print(" Failed to push to MongoDB")
         return False
 
 if __name__ == "__main__":

@@ -120,12 +120,12 @@ class TelegramAlerts:
     def alert_trade_entry(self, symbol: str, side: str, qty: int, price: float, stop: float):
         """Alert on trade entry."""
         message = (
-            f"🚀 *ENTRY*\n"
+            f" *ENTRY*\n"
             f"Symbol: `{symbol}`\n"
             f"Side: *{side.upper()}*\n"
             f"Qty: {qty}\n"
-            f"Price: ₹{price:.2f}\n"
-            f"Stop: ₹{stop:.2f}\n"
+            f"Price: {price:.2f}\n"
+            f"Stop: {stop:.2f}\n"
             f"Time: {datetime.now().strftime('%H:%M:%S')}"
         )
         return self.send_message(message)
@@ -140,14 +140,14 @@ class TelegramAlerts:
         reason: str
     ):
         """Alert on trade exit."""
-        emoji = "💰" if pnl > 0 else "🔴"
+        emoji = "" if pnl > 0 else ""
         message = (
             f"{emoji} *EXIT*\n"
             f"Symbol: `{symbol}`\n"
             f"Side: *{side.upper()}*\n"
             f"Qty: {qty}\n"
-            f"Price: ₹{price:.2f}\n"
-            f"P&L: ₹{pnl:+.2f}\n"
+            f"Price: {price:.2f}\n"
+            f"P&L: {pnl:+.2f}\n"
             f"Reason: {reason}\n"
             f"Time: {datetime.now().strftime('%H:%M:%S')}"
         )
@@ -156,11 +156,11 @@ class TelegramAlerts:
     def alert_stop_hit(self, symbol: str, stop_type: str, price: float, loss: float):
         """Alert on stop-loss hit."""
         message = (
-            f"🛑 *STOP HIT*\n"
+            f" *STOP HIT*\n"
             f"Symbol: `{symbol}`\n"
             f"Type: {stop_type}\n"
-            f"Price: ₹{price:.2f}\n"
-            f"Loss: ₹{loss:.2f}\n"
+            f"Price: {price:.2f}\n"
+            f"Loss: {loss:.2f}\n"
             f"Time: {datetime.now().strftime('%H:%M:%S')}"
         )
         return self.send_message(message)
@@ -168,12 +168,12 @@ class TelegramAlerts:
     def alert_partial_tp(self, symbol: str, tp_level: str, qty: int, price: float, pnl: float):
         """Alert on partial take-profit."""
         message = (
-            f"🎯 *PARTIAL TP*\n"
+            f" *PARTIAL TP*\n"
             f"Symbol: `{symbol}`\n"
             f"Level: {tp_level}\n"
             f"Qty: {qty}\n"
-            f"Price: ₹{price:.2f}\n"
-            f"P&L: ₹{pnl:+.2f}\n"
+            f"Price: {price:.2f}\n"
+            f"P&L: {pnl:+.2f}\n"
             f"Time: {datetime.now().strftime('%H:%M:%S')}"
         )
         return self.send_message(message)
@@ -181,7 +181,7 @@ class TelegramAlerts:
     def alert_circuit_breaker(self, level: str, action: str, dd_pct: float):
         """Alert on circuit breaker trigger."""
         message = (
-            f"🔴 *CIRCUIT BREAKER*\n"
+            f" *CIRCUIT BREAKER*\n"
             f"Level: {level}\n"
             f"Action: *{action}*\n"
             f"Drawdown: {dd_pct*100:.2f}%\n"
@@ -192,7 +192,7 @@ class TelegramAlerts:
     def alert_anomaly(self, anomaly_type: str, details: str):
         """Alert on anomaly detection."""
         message = (
-            f"⚠️ *ANOMALY DETECTED*\n"
+            f" *ANOMALY DETECTED*\n"
             f"Type: {anomaly_type}\n"
             f"Details: {details}\n"
             f"Time: {datetime.now().strftime('%H:%M:%S')}"
@@ -207,22 +207,22 @@ class TelegramAlerts:
         balance: float
     ):
         """Send daily P&L summary."""
-        emoji = "📈" if total_pnl > 0 else "📉"
+        emoji = "" if total_pnl > 0 else ""
         message = (
             f"{emoji} *DAILY SUMMARY*\n"
             f"Date: {datetime.now().strftime('%Y-%m-%d')}\n"
-            f"─────────────────\n"
-            f"P&L: ₹{total_pnl:+.2f}\n"
+            f"\n"
+            f"P&L: {total_pnl:+.2f}\n"
             f"Trades: {trades_count}\n"
             f"Win Rate: {win_rate*100:.1f}%\n"
-            f"Balance: ₹{balance:,.2f}"
+            f"Balance: {balance:,.2f}"
         )
         return self.send_message(message)
     
     def alert_eod_force_close(self, positions_closed: int):
         """Alert on EOD force-close."""
         message = (
-            f"⏰ *EOD FORCE CLOSE*\n"
+            f" *EOD FORCE CLOSE*\n"
             f"Closed {positions_closed} position(s)\n"
             f"Time: {datetime.now().strftime('%H:%M:%S')}"
         )
@@ -231,7 +231,7 @@ class TelegramAlerts:
     def alert_system_start(self, strategy: str, symbols: list):
         """Alert when bot starts."""
         message = (
-            f"▶️ *BOT STARTED*\n"
+            f" *BOT STARTED*\n"
             f"Strategy: {strategy}\n"
             f"Symbols: {', '.join(symbols[:5])}\n"
             f"Time: {datetime.now().strftime('%H:%M:%S')}"
@@ -241,7 +241,7 @@ class TelegramAlerts:
     def alert_system_stop(self, reason: str):
         """Alert when bot stops."""
         message = (
-            f"⏹️ *BOT STOPPED*\n"
+            f" *BOT STOPPED*\n"
             f"Reason: {reason}\n"
             f"Time: {datetime.now().strftime('%H:%M:%S')}"
         )
@@ -254,11 +254,11 @@ class TelegramAlerts:
                 self.logger.warning("Telegram alerts not enabled (missing token/chat_id)")
             return False
         
-        success = self.send_message("🤖 Telegram alerts connected successfully!")
+        success = self.send_message(" Telegram alerts connected successfully!")
         
         if success and self.logger:
-            self.logger.info("✅ Telegram connection test passed")
+            self.logger.info(" Telegram connection test passed")
         elif not success and self.logger:
-            self.logger.error("❌ Telegram connection test failed")
+            self.logger.error(" Telegram connection test failed")
         
         return success

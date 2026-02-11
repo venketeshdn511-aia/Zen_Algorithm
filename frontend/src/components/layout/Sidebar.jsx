@@ -11,7 +11,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     ];
 
     return (
-        <aside className="w-[260px] h-screen border-r border-white/[0.05] flex flex-col fixed left-0 top-0 z-50 bg-black">
+        <aside className="w-[260px] h-screen border-r border-white/[0.05] flex flex-col fixed left-0 top-0 z-50 bg-black hidden lg:flex">
             <div className="p-8 pb-12 flex items-center gap-3">
                 <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
                     <Zap className="text-black fill-black" size={18} />
@@ -27,8 +27,8 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
                         key={index}
                         onClick={() => setActiveTab(item.label)}
                         className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 ${activeTab === item.label
-                                ? 'bg-white/[0.08] text-white shadow-sm'
-                                : 'text-[#86868b] hover:text-white'
+                            ? 'bg-white/[0.08] text-white shadow-sm'
+                            : 'text-[#86868b] hover:text-white'
                             }`}
                     >
                         {item.icon}

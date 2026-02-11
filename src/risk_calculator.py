@@ -173,7 +173,7 @@ class RiskCalculator:
     
     def calculate_stop_buffer(self, entry_price: float, atr_1m: float) -> float:
         """
-        Calculate stop-loss buffer: max(0.15%, 0.25 × ATR)
+        Calculate stop-loss buffer: max(0.15%, 0.25  ATR)
         
         Args:
             entry_price: Entry price
@@ -185,7 +185,7 @@ class RiskCalculator:
         # 0.15% of entry price
         pct_buffer = entry_price * 0.0015
         
-        # 0.25 × ATR
+        # 0.25  ATR
         atr_buffer = 0.25 * atr_1m
         
         return max(pct_buffer, atr_buffer)

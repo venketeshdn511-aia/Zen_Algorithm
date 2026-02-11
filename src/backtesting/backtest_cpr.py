@@ -25,16 +25,16 @@ def run_cpr_backtest():
     df = pd.DataFrame()
     
     if fyers.connected:
-        print(f"✅ Connected to Fyers. Fetching data for {symbol}...")
+        print(f" Connected to Fyers. Fetching data for {symbol}...")
         df = fyers.get_latest_bars(symbol, timeframe=timeframe, limit=10000)
     else:
-        print("⚠️ Could not connect to Fyers API. Checking for local Fyers CSV data...")
+        print(" Could not connect to Fyers API. Checking for local Fyers CSV data...")
     
     # Fallback to local CSV if API failed or returned empty
     if df.empty:
         csv_file = 'nifty_5m_fyers_30d.csv'
         if os.path.exists(csv_file):
-            print(f"✅ Loading data from local file: {csv_file}")
+            print(f" Loading data from local file: {csv_file}")
             df = pd.read_csv(csv_file)
             # Standardize columns
             df.columns = [c.capitalize() for c in df.columns]
@@ -43,14 +43,14 @@ def run_cpr_backtest():
                 df['Datetime'] = pd.to_datetime(df['Datetime'])
                 df.set_index('Datetime', inplace=True)
         else:
-            print(f"❌ Local file {csv_file} not found. Cannot proceed.")
+            print(f" Local file {csv_file} not found. Cannot proceed.")
             return
 
     if df.empty:
-        print("❌ No data available.")
+        print(" No data available.")
         return
 
-    print(f"✅ Data ready: {len(df)} candles from {df.index[0]} to {df.index[-1]}")
+    print(f" Data ready: {len(df)} candles from {df.index[0]} to {df.index[-1]}")
 
     strategy = CPRBreakoutLongStrategy()
     

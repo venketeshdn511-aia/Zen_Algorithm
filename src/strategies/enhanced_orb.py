@@ -220,8 +220,8 @@ def run_enhanced_orb_backtest(df: pd.DataFrame, params: dict,
                 })
                 
                 if verbose:
-                    emoji = "✅" if pnl > 0 else "❌"
-                    print(f"{emoji} Exit @ {exit_price:.2f} | PnL: ₹{pnl:.2f}")
+                    emoji = "" if pnl > 0 else ""
+                    print(f"{emoji} Exit @ {exit_price:.2f} | PnL: {pnl:.2f}")
                     
                 position = None
         
@@ -251,7 +251,7 @@ def run_enhanced_orb_backtest(df: pd.DataFrame, params: dict,
                     }
                     
                     if verbose:
-                        print(f"🚀 {signal.upper()} @ {current_price:.2f} | SL: {stop:.2f} | TP: {target:.2f}")
+                        print(f" {signal.upper()} @ {current_price:.2f} | SL: {stop:.2f} | TP: {target:.2f}")
     
     # Close remaining
     if position:

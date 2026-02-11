@@ -252,19 +252,19 @@ class EMA_Crossover_Long_5m_1m_TSL_786_Strategy:
         above_emas = price > ema_f and price > ema_s
 
         if not trend_bullish:
-            self._status = f"🛑 Bearish regime (EMA 9 < 50). Waiting for a bullish crossover to buy."
+            self._status = f" Bearish regime (EMA 9 < 50). Waiting for a bullish crossover to buy."
         elif not above_emas:
-            self._status = f"📈 Bullish trend active. Waiting for price to break above EMAs ({ema_f:.1f}) to enter."
+            self._status = f" Bullish trend active. Waiting for price to break above EMAs ({ema_f:.1f}) to enter."
         else:
             # Check entry through standard rules
             res = self.check_entry(df['open'].values, df['close'].values, df['high'].values, df['low'].values, ind, idx)
             if res == 'LONG':
                 risk = max(abs(price - df['low'].iloc[idx]), abs(df['high'].iloc[idx] - price))
                 self.last_signal_data = {'risk': risk, 'target_rr': self.risk_reward}
-                self._status = f"🎯 SETUP FOUND! Bullish breakout confirmed at {price:.2f}. Entering Long."
+                self._status = f" SETUP FOUND! Bullish breakout confirmed at {price:.2f}. Entering Long."
                 return 'buy'
             else:
-                self._status = f"🔍 Price above EMAs in bullish trend. Monitoring for strong breakout confirmation..."
+                self._status = f" Price above EMAs in bullish trend. Monitoring for strong breakout confirmation..."
 
         return None
         

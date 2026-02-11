@@ -27,7 +27,7 @@ class StopLossManager:
         
         BUY: Stop = zone_low - buffer
         SELL: Stop = zone_high + buffer
-        buffer = max(0.15%, 0.25 × ATR)
+        buffer = max(0.15%, 0.25  ATR)
         
         Args:
             entry_price: Entry price
@@ -319,7 +319,7 @@ class StopLossManager:
         
         if new_stop != current_trailing and self.logger:
             self.logger.info(
-                f"Trailing stop updated: {current_trailing:.2f} → {new_stop:.2f}"
+                f"Trailing stop updated: {current_trailing:.2f}  {new_stop:.2f}"
             )
         
         return new_stop

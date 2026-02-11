@@ -43,7 +43,7 @@ class KotakBroker:
     # WS Callbacks
     def on_message(self, message):
         """WebSocket Message Handler"""
-        # self.logger.info(f"📡 WS Message: {str(message)[:100]}...")
+        # self.logger.info(f" WS Message: {str(message)[:100]}...")
         try:
              # Kotak might send {'data': [...]} or direct list/dict depending on subscription?
              # Based on previous log: {'type': 'stock_feed', 'data': [...]}
@@ -67,7 +67,7 @@ class KotakBroker:
              if token and ltp_str:
                  ltp = float(ltp_str)
                  self.ltp_cache[token] = ltp
-                 self.logger.info(f"✅ Cache Updated: {token} -> {ltp}")
+                 self.logger.info(f" Cache Updated: {token} -> {ltp}")
                  
                  vol = float(msg.get('v', 0))
                  ts = time.time()
@@ -79,10 +79,10 @@ class KotakBroker:
         self.logger.error(f"WS Error: {error}")
         
     def on_open(self, message):
-        self.logger.info("🟢 Kotak WS Connection Opened")
+        self.logger.info(" Kotak WS Connection Opened")
         
     def on_close(self, message):
-        self.logger.info("🔴 Kotak WS Connection Closed")
+        self.logger.info(" Kotak WS Connection Closed")
 
     def connect(self):
         """Connect to Kotak Neo API using TOTP Flow"""
@@ -91,7 +91,7 @@ class KotakBroker:
                 self.logger.error("KOTAK_CONSUMER_KEY not set")
                 return
 
-            self.logger.info("🚀 Initializing Kotak Neo Client...")
+            self.logger.info(" Initializing Kotak Neo Client...")
             # Init without consumer_secret for this version
             self.api = NeoAPI(
                 consumer_key=self.CONSUMER_KEY,
@@ -99,10 +99,10 @@ class KotakBroker:
             )
             
             # Login Flow
-            self.logger.info(f"🔐 Authenticating User: {self.MOBILE_NUMBER}")
+            self.logger.info(f" Authenticating User: {self.MOBILE_NUMBER}")
             otp = self._generate_totp()
             if not otp:
-                self.logger.error("❌ TOTP Generation Failed")
+                self.logger.error(" TOTP Generation Failed")
                 return
                 
             login_resp = self.api.totp_login(
@@ -112,12 +112,12 @@ class KotakBroker:
             )
             
             # Validate MPIN
-            self.logger.info("🔐 Validating MPIN...")
+            self.logger.info(" Validating MPIN...")
             validate_resp = self.api.totp_validate(mpin=self.MPIN)
             
             if validate_resp and 'data' in validate_resp and 'token' in validate_resp['data']:
                 self.connected = True
-                self.logger.info("✅ Kotak Neo Connected Successfully!")
+                self.logger.info(" Kotak Neo Connected Successfully!")
                 
                 # Setup WS Callbacks
                 self.api.on_message = self.on_message
@@ -126,11 +126,11 @@ class KotakBroker:
                 self.api.on_close = self.on_close
                 
             else:
-                self.logger.error(f"❌ Login Failed: {validate_resp}")
+                self.logger.error(f" Login Failed: {validate_resp}")
                 self.connected = False
                     
         except Exception as e:
-            self.logger.error(f"❌ Kotak Connection Critical Error: {e}")
+            self.logger.error(f" Kotak Connection Critical Error: {e}")
             self.connected = False
 
     def get_instrument_token(self, symbol, exchange_segment="nse_cm"):
@@ -174,7 +174,7 @@ class KotakBroker:
             
         try:
             instruments = [{"instrument_token": token, "exchange_segment": segment}]
-            self.logger.info(f"📡 Subscribing to {token}...")
+            self.logger.info(f" Subscribing to {token}...")
             # Detect index? 26000 is index.
             # Experiments show isIndex=True might fail or timeout.
             # Try isIndex=False for nse_cm tokens (even indices).
@@ -362,9 +362,11 @@ class KotakBroker:
             self.connected = False
             return {"status": "error", "message": str(e)}
 
+        return True
+
     def get_latest_bars(self, symbol, timeframe, limit=1000):
         """
-        Fetch historical data from Aggregator (Live Accumulation)
+        Fetch historical data from Aggregator (Live Accumulation or Primed)
         """
         if not self.connected: return None
         
@@ -375,18 +377,58 @@ class KotakBroker:
             
         token = mapping['token']
         
-        # Ensure subscribed
-        if token not in self.subscribed_tokens:
-             self.subscribe_symbol(token, mapping.get('segment', 'nse_cm'))
-             
         # Map Timeframe
         tf_map = {'1': 1, '5': 5, '15': 15, '1D': 1440}
         interval = tf_map.get(str(timeframe), 1)
         
+        # Ensure subscribed (for future ticks)
+        if token not in self.subscribed_tokens:
+             self.subscribe_symbol(token, mapping.get('segment', 'nse_cm'))
+             
         # Fetch from Aggregator
         df = self.aggregator.get_bars_df(token, interval, limit)
-        if df.empty: return None
+        if df is None or df.empty: return None
         return df
+
+    def prime_aggregator(self, symbol, df):
+        """Prime the internal aggregator with historical data"""
+        if df is None or df.empty: return
+        mapping = self.get_instrument_token(symbol)
+        if not mapping: return
+        token = mapping['token']
+        
+        # Determine intervals to prime
+        for interval in self.aggregator.intervals:
+            # We filter for that interval or just use 1m as base
+            if interval == 1:
+                with self.aggregator.lock:
+                    self.aggregator.completed_bars[interval][token] = []
+                    for idx, row in df.iterrows():
+                        # Resolve Datetime
+                        dt = idx
+                        if not hasattr(dt, 'isoformat'):
+                            if 'datetime' in row:
+                                dt = row['datetime']
+                            elif 'timestamp' in row:
+                                try: dt = datetime.fromtimestamp(float(row['timestamp']))
+                                except: dt = datetime.now()
+                        
+                        # Ensure dt is a datetime object
+                        if isinstance(dt, str):
+                            try: dt = datetime.fromisoformat(dt)
+                            except: pass
+
+                        bar = {
+                            'datetime': dt,
+                            'open': float(row['open']),
+                            'high': float(row['high']),
+                            'low': float(row['low']),
+                            'close': float(row['close']),
+                            'volume': float(row.get('volume', 0)),
+                            'bar_key': dt.isoformat() if hasattr(dt, 'isoformat') else str(dt)
+                        }
+                        self.aggregator.completed_bars[interval][token].append(bar)
+                    self.logger.info(f" Aggregator primed with {len(df)} bars for {symbol}")
 
     # === Option Helpers ===
     def get_atm_strike(self, spot_price):

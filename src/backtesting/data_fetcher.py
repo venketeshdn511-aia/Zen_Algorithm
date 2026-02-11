@@ -11,7 +11,7 @@ def fetch_data(symbol, start_date, end_date, interval='1m'):
     """
     Fetches historical data from Fyers API.
     """
-    print(f"📡 Fetching data for {symbol} from {start_date} to {end_date} (Interval: {interval}) via Fyers...")
+    print(f" Fetching data for {symbol} from {start_date} to {end_date} (Interval: {interval}) via Fyers...")
     
     # Map backtest intervals to Fyers resolution
     resolution_map = {
@@ -33,7 +33,7 @@ def fetch_data(symbol, start_date, end_date, interval='1m'):
         token = os.getenv('FYERS_ACCESS_TOKEN')
         
     if not token:
-        print("❌ Error: No Fyers token found (.fyers_token or FYERS_ACCESS_TOKEN env).")
+        print(" Error: No Fyers token found (.fyers_token or FYERS_ACCESS_TOKEN env).")
         return pd.DataFrame()
 
     app_id = os.getenv('FYERS_APP_ID')
@@ -41,7 +41,7 @@ def fetch_data(symbol, start_date, end_date, interval='1m'):
         app_id += "-100"
         
     if not app_id:
-        print("❌ Error: FYERS_APP_ID not found in environment.")
+        print(" Error: FYERS_APP_ID not found in environment.")
         return pd.DataFrame()
 
     fyers = fyersModel.FyersModel(client_id=app_id, token=token, log_path="")
@@ -83,17 +83,17 @@ def fetch_data(symbol, start_date, end_date, interval='1m'):
             if response and response.get('s') == 'ok':
                 all_candles.extend(response['candles'])
             else:
-                print(f"⚠️ Fyers API Error for range {data['range_from']} to {data['range_to']}: {response}")
+                print(f" Fyers API Error for range {data['range_from']} to {data['range_to']}: {response}")
                 break
         except Exception as e:
-            print(f"❌ Exception during Fyers fetch: {e}")
+            print(f" Exception during Fyers fetch: {e}")
             break
             
         current_start = current_end + timedelta(days=1)
         time.sleep(0.5) # Avoid rate limits
         
     if not all_candles:
-        print(f"⚠️ No data fetched for {symbol}.")
+        print(f" No data fetched for {symbol}.")
         return pd.DataFrame()
         
     df = pd.DataFrame(all_candles, columns=['datetime', 'open', 'high', 'low', 'close', 'volume'])
@@ -107,5 +107,5 @@ def fetch_data(symbol, start_date, end_date, interval='1m'):
     # Capitalize columns to match the project's expected format (OHLCV)
     df.columns = [c.capitalize() for c in df.columns]
     
-    print(f"✅ Successfully fetched {len(df)} rows via Fyers.")
+    print(f" Successfully fetched {len(df)} rows via Fyers.")
     return df

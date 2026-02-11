@@ -86,7 +86,7 @@ class EMAPullback696Strategy:
         # Check Kill Zone
         is_kz = detect_kill_zone(df.index[idx])
         if not is_kz:
-            self._status = "☕ Cooling off. Outside Kill Zone (Market is noisy right now)."
+            self._status = " Cooling off. Outside Kill Zone (Market is noisy right now)."
             return None
 
         # Trend and Pullback logic (SHORT)
@@ -103,12 +103,12 @@ class EMAPullback696Strategy:
                     'stop_loss': p_close + risk,
                     'take_profit': p_close - (risk * self.risk_reward)
                 }
-                self._status = f"🎯 SETUP FOUND! Bearish pullback to {f_ema:.1f}. Entering Short at {p_close:.2f}."
+                self._status = f" SETUP FOUND! Bearish pullback to {f_ema:.1f}. Entering Short at {p_close:.2f}."
                 return 'buy'
             else:
-                self._status = f"📉 Trend is Bearish. Waiting for a rally towards EMA {f_ema:.1f} to sell high."
+                self._status = f" Trend is Bearish. Waiting for a rally towards EMA {f_ema:.1f} to sell high."
         else:
-            self._status = f"🛑 Bearish trend lost. (EMA {f_ema:.1f} > {s_ema:.1f}). Looking for a structural flip."
+            self._status = f" Bearish trend lost. (EMA {f_ema:.1f} > {s_ema:.1f}). Looking for a structural flip."
 
         return None
 

@@ -253,16 +253,16 @@ class ConfidenceScorer:
         if hour is not None:
             time_patterns = self.insights.get('time_patterns', {})
             if hour == time_patterns.get('best_hour'):
-                explanations.append(f"✅ Peak hour ({hour}:00)")
+                explanations.append(f" Peak hour ({hour}:00)")
             elif hour == time_patterns.get('worst_hour'):
-                explanations.append(f"⚠️ Weak hour ({hour}:00)")
+                explanations.append(f" Weak hour ({hour}:00)")
         
         # Streak explanation
         streak = self.insights.get('streak_analysis', {})
         if streak.get('is_losing_streak'):
-            explanations.append(f"🔴 Losing streak ({streak.get('consecutive_losses', 0)} losses)")
+            explanations.append(f" Losing streak ({streak.get('consecutive_losses', 0)} losses)")
         elif streak.get('current_streak', 0) >= 3:
-            explanations.append(f"🟢 Winning streak")
+            explanations.append(f" Winning streak")
         
         # Regime explanation
         regime = conditions.get('regime')
@@ -270,14 +270,14 @@ class ConfidenceScorer:
         if regime and regime in regime_perf:
             wr = regime_perf[regime].get('win_rate', 0)
             if wr >= 60:
-                explanations.append(f"✅ Strong in {regime} ({wr}% WR)")
+                explanations.append(f" Strong in {regime} ({wr}% WR)")
             elif wr < 45:
-                explanations.append(f"⚠️ Weak in {regime} ({wr}% WR)")
+                explanations.append(f" Weak in {regime} ({wr}% WR)")
         
         if not explanations:
             explanations.append("Neutral conditions")
         
-        summary = f"Score: {score}/100 → {recommendation}"
+        summary = f"Score: {score}/100  {recommendation}"
         if multiplier != 1.0 and multiplier > 0:
             summary += f" (Size: {int(multiplier*100)}%)"
         

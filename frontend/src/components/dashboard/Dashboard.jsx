@@ -12,6 +12,20 @@ const Dashboard = ({ onOpenBlueprint, tradingMode }) => {
     const [lastUpdate, setLastUpdate] = React.useState('Just Now');
     const [equityCurve, setEquityCurve] = React.useState([]);
     const [recentTrades, setRecentTrades] = React.useState([]);
+    const [strategies, setStrategies] = React.useState([]);
+    const [isMasterLive, setIsMasterLive] = React.useState(true);
+
+    const handleToggleStatus = async (id, name) => {
+        try {
+            await fetch('/api/strategy/toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ strategy: name })
+            });
+        } catch (err) {
+            console.error("Failed to toggle strategy:", err);
+        }
+    };
 
     React.useEffect(() => {
         const fetchData = async () => {
@@ -33,6 +47,12 @@ const Dashboard = ({ onOpenBlueprint, tradingMode }) => {
                 }
                 if (data.recent_trades) {
                     setRecentTrades(data.recent_trades);
+                }
+                if (data.strategies) {
+                    setStrategies(data.strategies);
+                }
+                if (data.running !== undefined) {
+                    setIsMasterLive(data.running);
                 }
                 setLastUpdate(new Date().toLocaleTimeString());
             } catch (err) {
@@ -62,14 +82,14 @@ const Dashboard = ({ onOpenBlueprint, tradingMode }) => {
     const pathData = generatePathData(equityCurve);
 
     return (
-        <div className="space-y-32 pb-64">
+        <div className="space-y-16 md:space-y-32 pb-32 md:pb-64">
             {/* Hero Product Section */}
-            <section className="relative pt-20">
+            <section className="relative pt-10 md:pt-20">
                 <div className="text-center space-y-6">
                     <motion.span
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-[17px] font-bold text-[#007aff] uppercase tracking-widest"
+                        className="text-[13px] md:text-[17px] font-bold text-[#007aff] uppercase tracking-widest"
                     >
                         Real-time Portfolio Intelligence
                     </motion.span>
@@ -77,7 +97,7 @@ const Dashboard = ({ onOpenBlueprint, tradingMode }) => {
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1, duration: 0.8 }}
-                        className="hero-text"
+                        className="hero-text px-4"
                     >
                         Precision execution.<br />Mathematically superior.
                     </motion.h1>
@@ -85,7 +105,7 @@ const Dashboard = ({ onOpenBlueprint, tradingMode }) => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2, duration: 0.8 }}
-                        className="sub-hero-text max-w-2xl mx-auto"
+                        className="sub-hero-text max-w-2xl mx-auto px-6"
                     >
                         AlgoBot Pro orchestrates your capital across multiple strategies with microsecond latency and AI-driven regime detection.
                     </motion.p>
@@ -96,18 +116,18 @@ const Dashboard = ({ onOpenBlueprint, tradingMode }) => {
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.4, duration: 1.2 }}
-                    className="mt-20 apple-bento p-1 overflow-hidden shadow-2xl"
+                    className="mt-10 md:mt-20 apple-bento p-1 overflow-hidden shadow-2xl mx-2 md:mx-0"
                 >
-                    <div className="bg-[var(--card-bg)] p-12 h-[600px] relative flex flex-col justify-between">
+                    <div className="bg-[var(--card-bg)] p-6 md:p-12 min-h-[400px] md:h-[600px] relative flex flex-col justify-between">
                         <div className="flex justify-between items-start">
                             <div>
                                 <p className="text-[14px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Total Net Equity</p>
-                                <h2 className="text-[64px] font-extrabold tracking-tighter text-[var(--text-color)]">
+                                <h2 className="text-[32px] md:text-[64px] font-extrabold tracking-tighter text-[var(--text-color)]">
                                     ₹{liveEquity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </h2>
                             </div>
-                            <div className="flex items-center gap-2 px-6 py-2 bg-[#34c759]/10 text-[#34c759] rounded-full border border-[#34c759]/20 font-bold text-lg">
-                                <TrendingUp size={24} /> +{pnlPct.toFixed(1)}%
+                            <div className="flex items-center gap-1 md:gap-2 px-3 md:px-6 py-1 md:py-2 bg-[#34c759]/10 text-[#34c759] rounded-full border border-[#34c759]/20 font-bold text-sm md:text-lg">
+                                <TrendingUp size={16} className="md:size-6" /> +{pnlPct.toFixed(1)}%
                             </div>
                         </div>
 
@@ -152,14 +172,14 @@ const Dashboard = ({ onOpenBlueprint, tradingMode }) => {
                             </svg>
 
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                <div className="text-[140px] font-black text-[var(--text-color)] opacity-[0.03] uppercase select-none tracking-tighter">PERFORMANCE</div>
+                                <div className="text-[60px] md:text-[140px] font-black text-[var(--text-color)] opacity-[0.03] uppercase select-none tracking-tighter">PERFORMANCE</div>
                             </div>
                         </div>
 
-                        <div className="flex justify-between items-center text-[var(--text-muted)] text-xs font-bold uppercase tracking-widest">
-                            <div className="flex gap-12">
+                        <div className="flex flex-col md:flex-row justify-between items-center text-[var(--text-muted)] text-[10px] md:text-xs font-bold uppercase tracking-widest gap-4 md:gap-0">
+                            <div className="flex gap-6 md:gap-12">
                                 <div>Ping: <span className="text-[var(--text-color)]">{ping}ms</span></div>
-                                <div>Server: <span className="text-[var(--text-color)]">Local Node</span></div>
+                                <div className="hidden sm:block">Server: <span className="text-[var(--text-color)]">Local Node</span></div>
                             </div>
                             <div>Last Update: <span className="text-[var(--text-color)]">{lastUpdate}</span></div>
                         </div>
@@ -168,13 +188,13 @@ const Dashboard = ({ onOpenBlueprint, tradingMode }) => {
             </section>
 
             {/* Feature Grid - Bento 2.0 */}
-            <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="apple-bento p-10 lg:col-span-2 flex flex-col justify-between min-h-[400px]">
+            <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4 md:px-0">
+                <div className="apple-bento p-6 md:p-10 lg:col-span-2 flex flex-col justify-between min-h-[300px] md:min-h-[400px]">
                     <div className="space-y-2">
                         <div className="p-3 bg-[var(--border-color)] w-fit rounded-2xl border border-[var(--border-color)] mb-6">
                             <Cpu className="text-[#007aff]" size={32} />
                         </div>
-                        <h3 className="text-4xl font-bold tracking-tight text-[var(--text-color)]">AI Multi-Regime Core</h3>
+                        <h3 className="text-2xl md:text-4xl font-bold tracking-tight text-[var(--text-color)]">AI Multi-Regime Core</h3>
                         <p className="text-xl text-[var(--text-muted)] font-medium leading-normal max-w-lg">
                             Our neural networks analyze 40+ market factors to identify shifting regimes before they impact your PnL.
                         </p>
@@ -182,21 +202,21 @@ const Dashboard = ({ onOpenBlueprint, tradingMode }) => {
 
                     <div className="grid grid-cols-3 gap-8 mt-12 pt-12 border-t border-[var(--border-color)]">
                         <div>
-                            <p className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">Market Regime</p>
-                            <p className="text-2xl font-bold text-[#34c759]">BULLISH VOLATILE</p>
+                            <p className="text-[9px] md:text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1 md:mb-2">Market Regime</p>
+                            <p className="text-lg md:text-2xl font-bold text-[#34c759]">BULLISH VOLATILE</p>
                         </div>
                         <div>
-                            <p className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">Signal Strength</p>
-                            <p className="text-2xl font-bold text-[var(--text-color)]">84%</p>
+                            <p className="text-[9px] md:text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1 md:mb-2">Signal Strength</p>
+                            <p className="text-lg md:text-2xl font-bold text-[var(--text-color)]">84%</p>
                         </div>
                         <div>
-                            <p className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">Alpha Decay</p>
-                            <p className="text-2xl font-bold text-[var(--text-color)]">LOW</p>
+                            <p className="text-[9px] md:text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1 md:mb-2">Alpha Decay</p>
+                            <p className="text-lg md:text-2xl font-bold text-[var(--text-color)]">LOW</p>
                         </div>
                     </div>
                 </div>
 
-                <div className="apple-bento p-10 flex flex-col justify-between min-h-[400px]">
+                <div className="apple-bento p-6 md:p-10 flex flex-col justify-between min-h-[300px] md:min-h-[400px]">
                     <div className="space-y-4">
                         <div className="p-3 bg-[var(--border-color)] w-fit rounded-2xl border border-[var(--border-color)] mb-4">
                             <Globe className="text-[#34c759]" size={32} />
@@ -231,81 +251,48 @@ const Dashboard = ({ onOpenBlueprint, tradingMode }) => {
             {/* Strategies Showcase */}
             <section className="space-y-16">
                 <div className="flex justify-between items-end">
-                    <div className="space-y-4 text-left">
-                        <h2 className="text-5xl font-bold tracking-tight text-[var(--text-color)]">Active Engines.</h2>
+                    <div className="space-y-4 text-left px-4 md:px-0">
+                        <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-[var(--text-color)]">Active Engines.</h2>
                         <p className="text-xl text-[var(--text-muted)] font-medium leading-relaxed">
                             Independent machines harvesting specific market inefficiencies.
                         </p>
                     </div>
-                    <div className="flex gap-4 mb-4">
-                        <div className="px-4 py-2 glass-island text-[13px] font-bold text-[var(--text-color)]">ALL STRATEGIES (8)</div>
+                    <div className="hidden sm:flex gap-4 mb-4">
+                        <div className="px-4 py-2 glass-island text-[13px] font-bold text-[var(--text-color)]">ALL STRATEGIES ({strategies.length})</div>
                         <div className="px-4 py-2 text-[13px] font-bold text-[var(--text-muted)] hover:text-[var(--text-color)] cursor-pointer transition-colors">PRO ONLY</div>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    <StrategyCard
-                        name="Failed Auction b2"
-                        profit={1240}
-                        profitPct={2.4}
-                        status="Active"
-                        isPro={true}
-                        history={[0, 400, 200, 800, 600, 1240]}
-                        metrics={{ winRate: '64%', profitFactor: '2.4', maxDrawdown: '1.2%', totalTrades: '248' }}
-                        onOpenBlueprint={onOpenBlueprint}
-                    />
-                    <StrategyCard
-                        name="BankNifty Breakout"
-                        profit={3290}
-                        profitPct={6.2}
-                        status="Active"
-                        isPro={true}
-                        history={[0, 1000, 800, 2200, 1800, 3290]}
-                        metrics={{ winRate: '72%', profitFactor: '3.1', maxDrawdown: '0.8%', totalTrades: '124' }}
-                        onOpenBlueprint={onOpenBlueprint}
-                    />
-                    <StrategyCard
-                        name="EMA Reversion"
-                        profit={-450}
-                        profitPct={-0.8}
-                        status="Paused"
-                        history={[0, -200, 100, -300, -100, -450]}
-                        metrics={{ winRate: '48%', profitFactor: '0.9', maxDrawdown: '5.4%', totalTrades: '86' }}
-                        onOpenBlueprint={onOpenBlueprint}
-                    />
-                    <StrategyCard
-                        name="Gamma Scalper"
-                        profit={8540}
-                        profitPct={12.4}
-                        status="Active"
-                        isPro={true}
-                        history={[0, 2000, -500, 4000, 3000, 8540]}
-                        metrics={{ winRate: '82%', profitFactor: '4.8', maxDrawdown: '2.1%', totalTrades: '1,042' }}
-                        onOpenBlueprint={onOpenBlueprint}
-                    />
-                    <StrategyCard
-                        name="Mean Revert Pro"
-                        profit={1120}
-                        profitPct={1.2}
-                        status="Active"
-                        history={[0, 300, 200, 1000, 800, 1120]}
-                        metrics={{ winRate: '58%', profitFactor: '1.4', maxDrawdown: '3.2%', totalTrades: '420' }}
-                        onOpenBlueprint={onOpenBlueprint}
-                    />
-                    <StrategyCard
-                        name="Volatility Arb"
-                        profit={-120}
-                        profitPct={-0.2}
-                        status="Active"
-                        history={[0, -500, -200, 400, 100, -120]}
-                        metrics={{ winRate: '52%', profitFactor: '0.98', maxDrawdown: '1.8%', totalTrades: '156' }}
-                        onOpenBlueprint={onOpenBlueprint}
-                    />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 px-4 md:px-0">
+                    {strategies.length > 0 ? strategies.map((s, idx) => (
+                        <StrategyCard
+                            key={s.name}
+                            name={s.name}
+                            profit={s.pnl || 0}
+                            profitPct={s.pnl_pct || 0}
+                            status={s.status}
+                            isPro={idx % 2 === 0} // visual placeholder logic for now
+                            history={s.trades || []}
+                            metrics={{
+                                winRate: `${s.win_rate || 0}%`,
+                                profitFactor: (s.wins / (s.losses || 1) * 1.5).toFixed(2),
+                                maxDrawdown: s.pnl_pct < 0 ? `${Math.abs(s.pnl_pct).toFixed(1)}%` : '0.0%',
+                                totalTrades: ((s.wins || 0) + (s.losses || 0)).toString()
+                            }}
+                            onOpenBlueprint={onOpenBlueprint}
+                            onToggleStatus={() => handleToggleStatus(idx + 1, s.name)}
+                            isMasterLive={isMasterLive}
+                        />
+                    )) : (
+                        <div className="col-span-3 text-center py-20 bg-[var(--card-bg)] rounded-3xl border border-[var(--border-color)]">
+                            <p className="text-[var(--text-muted)] text-lg font-medium">No active strategies deployed.</p>
+                        </div>
+                    )}
                 </div>
             </section>
 
             {/* Intelligence Snapshot */}
-            <section className="apple-bento p-12 grid grid-cols-1 lg:grid-cols-2 gap-20">
+            <section className="apple-bento p-6 md:p-12 mx-4 md:mx-0 grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-20">
                 <div>
                     <h2 className="text-4xl font-bold mb-6 tracking-tight text-[var(--text-color)]">Gemini Insight Panel</h2>
                     <p className="text-lg text-[var(--text-muted)] mb-10 font-medium leading-relaxed">

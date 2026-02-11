@@ -24,7 +24,7 @@ const Strategies = ({ onOpenBlueprint, tradingMode }) => {
                     name: s.name,
                     profit: s.pnl,
                     profitPct: s.pnl_pct,
-                    status: s.status === 'Monitoring...' ? 'Active' : s.status,
+                    status: (s.status === 'Monitoring...' || s.status === 'Scanning alpha vectors...' || s.status?.startsWith('Nifty:')) ? 'Active' : s.status,
                     isPro: s.pnl_pct > 10,
                     history: s.trades || [], // Full trade objects for analytics
                     metrics: {
@@ -62,8 +62,27 @@ const Strategies = ({ onOpenBlueprint, tradingMode }) => {
     };
 
     const toggleStrategyStatus = async (id, name) => {
-        // In a real app, this would call a backend toggle endpoint
-        console.log(`Toggling ${name}`);
+        try {
+            await fetch('/api/strategy/toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ strategy: name })
+            });
+            fetchData(); // Refresh state
+        } catch (err) {
+            console.error("Failed to toggle strategy:", err);
+        }
+    };
+
+    const handleMasterToggle = async () => {
+        const targetState = !isLiveBotActive;
+        try {
+            const endpoint = targetState ? '/api/start' : '/api/stop';
+            await fetch(endpoint);
+            fetchData(); // Sync with real backend state
+        } catch (err) {
+            console.error("Master toggle error:", err);
+        }
     };
 
     const filters = ['All', 'Active', 'Paused', 'Pro Only', 'Top Gainers'];
@@ -89,9 +108,9 @@ const Strategies = ({ onOpenBlueprint, tradingMode }) => {
             <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
                 <div className="space-y-4">
                     <div className="flex items-center gap-4">
-                        <h1 className="text-[56px] font-black tracking-tighter text-[var(--text-color)] leading-none">Strategies.</h1>
+                        <h1 className="text-[32px] md:text-[56px] font-black tracking-tighter text-[var(--text-color)] leading-none">Strategies.</h1>
                         <div
-                            onClick={() => setIsLiveBotActive(!isLiveBotActive)}
+                            onClick={handleMasterToggle}
                             className={`mt-4 px-4 py-2 rounded-full cursor-pointer transition-all flex items-center gap-2 border ${isLiveBotActive
                                 ? 'bg-[var(--apple-green)]/10 text-[var(--apple-green)] border-[var(--apple-green)]/20 shadow-[0_0_20px_rgba(52,199,89,0.2)]'
                                 : 'bg-[var(--text-muted)]/10 text-[var(--text-muted)] border-[var(--border-color)]'
@@ -101,7 +120,7 @@ const Strategies = ({ onOpenBlueprint, tradingMode }) => {
                             <span className="text-[11px] font-black uppercase tracking-widest">{isLiveBotActive ? 'Live Mesh Active' : 'Mesh Hibernating'}</span>
                         </div>
                     </div>
-                    <p className="text-[20px] text-[var(--text-muted)] font-medium max-w-xl">
+                    <p className="text-[16px] md:text-[20px] text-[var(--text-muted)] font-medium max-w-xl">
                         Deploy, monitor, and refine your autonomous trading mesh.
                     </p>
                 </div>
@@ -158,7 +177,7 @@ const Strategies = ({ onOpenBlueprint, tradingMode }) => {
                         label: 'Total AUM',
                         value: typeof totalStats.aum === 'number'
                             ? `₹${totalStats.aum >= 100000
-                                ? (totalStats.aum / 100000).toFixed(2) + 'L'
+                                ? (totalStats.aum / 100000).toFixed(1) + 'L'
                                 : totalStats.aum.toLocaleString()}`
                             : '₹0',
                         color: 'text-[var(--text-color)]'
@@ -168,7 +187,7 @@ const Strategies = ({ onOpenBlueprint, tradingMode }) => {
                 ].map((stat, i) => (
                     <div key={i} className="apple-bento p-6 border border-[var(--border-color)]">
                         <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">{stat.label}</p>
-                        <p className={`text-2xl font-black ${stat.color}`}>{stat.value}</p>
+                        <p className={`text-xl md:text-2xl font-black ${stat.color}`}>{stat.value}</p>
                     </div>
                 ))}
             </div>

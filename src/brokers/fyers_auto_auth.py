@@ -30,7 +30,7 @@ def validate_token():
         fyers = fyersModel.FyersModel(client_id=app_id, token=token, log_path="")
         profile = fyers.get_profile()
         if profile.get('s') == 'ok':
-            logger.info("✅ Token is valid")
+            logger.info(" Token is valid")
             return True, token
         else:
             return False, f"Token invalid: {profile}"
@@ -48,7 +48,7 @@ def refresh_token_if_needed():
     if is_valid:
         return result
     else:
-        logger.error(f"❌ Token validation failed: {result}")
+        logger.error(f" Token validation failed: {result}")
         logger.error("Run 'python fyers_auth.py' locally and update FYERS_ACCESS_TOKEN in Render")
         return None
 

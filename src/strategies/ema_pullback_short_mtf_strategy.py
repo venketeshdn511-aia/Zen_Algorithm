@@ -1,4 +1,4 @@
-# ⚠️ WARNING: This code was NOT fully verified against backtest.
+#  WARNING: This code was NOT fully verified against backtest.
 # The PnL may differ slightly from the PDF report.
 # Please review and test before using in production.
 # ======================================================================
@@ -198,19 +198,19 @@ class EMA_Pullback_Short_15m_1m_45_Strategy:
         pullback_high = high >= ema_f
 
         if not trend_bearish:
-            self._status = f"🛑 Bearish trend lost (EMA 9 > 34). Looking for a bearish crossover before selling."
+            self._status = f" Bearish trend lost (EMA 9 > 34). Looking for a bearish crossover before selling."
         elif not pullback_high:
-            self._status = f"📉 Trend is Bearish. Waiting for a rally towards EMA 9 ({ema_f:.1f}) for a high-probability sell."
+            self._status = f" Trend is Bearish. Waiting for a rally towards EMA 9 ({ema_f:.1f}) for a high-probability sell."
         else:
             # Check entry through standard rules
             res = self.check_entry(df['open'].values, df['close'].values, df['high'].values, df['low'].values, ind, idx, df.index)
             if res == 'SHORT':
                 risk = max(abs(price - df['low'].iloc[idx]), abs(high - price))
                 self.last_signal_data = {'risk': risk, 'target_rr': self.risk_reward}
-                self._status = f"🎯 SETUP FOUND! Pullback to {ema_f:.1f} hit. Entering Short at {price:.2f}."
+                self._status = f" SETUP FOUND! Pullback to {ema_f:.1f} hit. Entering Short at {price:.2f}."
                 return 'buy'
             else:
-                self._status = f"👀 Rally to EMA 9 ({ema_f:.1f}) detected. Monitoring for rejection/confirmation in Kill Zone..."
+                self._status = f" Rally to EMA 9 ({ema_f:.1f}) detected. Monitoring for rejection/confirmation in Kill Zone..."
 
         return None
         

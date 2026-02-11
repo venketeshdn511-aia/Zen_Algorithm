@@ -51,11 +51,11 @@ const Settings = ({ isDarkMode, onToggleDarkMode }) => {
     ];
 
     return (
-        <div className="space-y-8 max-w-4xl mx-auto pt-32 pb-20 px-6">
+        <div className="space-y-8 max-w-4xl mx-auto pt-10 md:pt-32 pb-12 md:pb-20 px-4 md:px-6">
             <div className="flex items-center justify-between mb-2">
                 <div>
-                    <h1 className="text-4xl font-bold tracking-tight text-[var(--text-color)]">System Status</h1>
-                    <p className="text-[var(--text-muted)] mt-1 font-medium">Global infrastructure & account preferences</p>
+                    <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-[var(--text-color)]">System Status</h1>
+                    <p className="text-[14px] md:text-base text-[var(--text-muted)] mt-1 font-medium">Global infrastructure & account preferences</p>
                 </div>
             </div>
 
@@ -63,12 +63,12 @@ const Settings = ({ isDarkMode, onToggleDarkMode }) => {
             <section className="apple-bento p-8">
                 <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-blue-600/10 rounded-2xl">
-                            <Shield className="text-blue-500" size={28} />
+                        <div className="p-2 md:p-3 bg-blue-600/10 rounded-xl md:rounded-2xl">
+                            <Shield className="text-blue-500 w-5 h-5 md:w-7 md:h-7" />
                         </div>
                         <div>
-                            <h2 className="text-2xl font-bold text-[var(--text-color)]">Broker Connection</h2>
-                            <p className="text-[var(--text-muted)] text-sm">Secure link to Kotak Securities API section</p>
+                            <h2 className="text-xl md:text-2xl font-bold text-[var(--text-color)]">Broker Connection</h2>
+                            <p className="text-[var(--text-muted)] text-[11px] md:text-sm">Secure link to Kotak Securities API section</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2 px-4 py-2 bg-[#34c759]/10 text-[#34c759] rounded-full border border-[#34c759]/20 font-bold text-sm">
@@ -91,22 +91,22 @@ const Settings = ({ isDarkMode, onToggleDarkMode }) => {
             <section className="apple-bento p-8">
                 <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-purple-600/10 rounded-2xl">
-                            <Cpu className="text-purple-500" size={28} />
+                        <div className="p-2 md:p-3 bg-purple-600/10 rounded-xl md:rounded-2xl">
+                            <Cpu className="text-purple-500 w-5 h-5 md:w-7 md:h-7" />
                         </div>
                         <div>
-                            <h2 className="text-2xl font-bold text-[var(--text-color)]">System Healthy</h2>
-                            <p className="text-[var(--text-muted)] text-sm">{isDiagnosing ? 'Scanning systems...' : 'Neural processors operating at peak efficiency'}</p>
+                            <h2 className="text-xl md:text-2xl font-bold text-[var(--text-color)]">System Healthy</h2>
+                            <p className="text-[var(--text-muted)] text-[11px] md:text-sm">{isDiagnosing ? 'Scanning systems...' : 'Neural processors operating at peak efficiency'}</p>
                         </div>
                     </div>
                     <button
                         onClick={runDiagnostic}
                         disabled={isDiagnosing}
-                        className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all ${isDiagnosing ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-[var(--text-color)] text-[var(--bg-color)] hover:opacity-80'
+                        className={`flex items-center gap-2 px-4 py-2 md:px-6 md:py-2 rounded-full font-bold text-[11px] md:text-sm transition-all ${isDiagnosing ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-[var(--text-color)] text-[var(--bg-color)] hover:opacity-80'
                             }`}
                     >
-                        {isDiagnosing ? <Loader2 className="animate-spin" size={16} /> : <Globe size={16} />}
-                        {isDiagnosing ? 'DIAGNOSING...' : 'RUN DIAGNOSTIC'}
+                        {isDiagnosing ? <Loader2 className="animate-spin" size={14} /> : <Globe size={14} />}
+                        {isDiagnosing ? 'DIAGNOSTIC' : 'OPTIMIZE'}
                     </button>
                 </div>
 

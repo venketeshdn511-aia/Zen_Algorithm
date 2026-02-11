@@ -90,7 +90,7 @@ class MarubozuBreakoutStrategy(StrategyInterface):
                 'take_profit': target,
                 'risk': risk
             }
-            self.current_status = "🔴 SELL SIGNAL: Bearish Marubozu Breakout"
+            self.current_status = " SELL SIGNAL: Bearish Marubozu Breakout"
             return 'sell'
 
         return None

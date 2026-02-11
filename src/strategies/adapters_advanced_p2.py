@@ -138,7 +138,7 @@ class InstitutionalStrategyAdapter(BaseStrategy):
                 if not curr_premium: return
                 spot_stop = pos.get('spot_stop', 0)
                 current_spot = float(df['close'].iloc[-1])
-                self.status = f"Long {symbol}: ₹{curr_premium:.1f} | Trail: {spot_stop:.0f}"
+                self.status = f"Long {symbol}: {curr_premium:.1f} | Trail: {spot_stop:.0f}"
                 if signal == 'exit_reversal':
                     self.close_trade(curr_premium, 'ema_reversal')
                     return

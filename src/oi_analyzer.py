@@ -85,7 +85,7 @@ class OIAnalyzer:
         self.oi_cache = chain_data
         self.cache_expiry = datetime.now() + timedelta(seconds=self.cache_duration_seconds)
         
-        self.logger.info(f"📊 Fetched OI chain: {len(chain_data)} strikes around ATM {atm_strike}")
+        self.logger.info(f" Fetched OI chain: {len(chain_data)} strikes around ATM {atm_strike}")
         
         return chain_data
     
@@ -151,7 +151,7 @@ class OIAnalyzer:
         else:
             sentiment = "NEUTRAL"
         
-        self.logger.info(f"📊 PCR: {pcr:.2f} ({sentiment}) | Put OI: {total_put_oi:,} | Call OI: {total_call_oi:,}")
+        self.logger.info(f" PCR: {pcr:.2f} ({sentiment}) | Put OI: {total_put_oi:,} | Call OI: {total_call_oi:,}")
         
         return pcr, sentiment
     
@@ -204,7 +204,7 @@ class OIAnalyzer:
                 min_pain = total_pain
                 max_pain_strike = test_strike
         
-        self.logger.info(f"🎯 Max Pain: {max_pain_strike}")
+        self.logger.info(f" Max Pain: {max_pain_strike}")
         
         return max_pain_strike
     
@@ -305,7 +305,7 @@ class OIAnalyzer:
         }
         
         self.logger.info(
-            f"🎯 Strike Selection: {optimal_strike} {option_type} | "
+            f" Strike Selection: {optimal_strike} {option_type} | "
             f"PCR: {pcr:.2f} ({sentiment}) | MaxPain: {max_pain} | "
             f"Offset: {strike_offset} strikes"
         )

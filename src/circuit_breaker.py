@@ -66,7 +66,7 @@ class CircuitBreaker:
                     
                     if self.logger:
                         self.logger.critical(
-                            f"🔴 CIRCUIT BREAKER {level_name}: "
+                            f" CIRCUIT BREAKER {level_name}: "
                             f"Drawdown {dd_pct*100:.2f}% <= {level['threshold']*100:.0f}% | "
                             f"Action: {level['action']}"
                         )
@@ -86,7 +86,7 @@ class CircuitBreaker:
         
         if self.logger:
             self.logger.warning(
-                f"⏸️ Trading PAUSED until {self.pause_until.strftime('%H:%M:%S')} "
+                f" Trading PAUSED until {self.pause_until.strftime('%H:%M:%S')} "
                 f"({duration_minutes} min)"
             )
     
@@ -98,7 +98,7 @@ class CircuitBreaker:
         if datetime.now() >= self.pause_until:
             # Pause expired
             if self.logger:
-                self.logger.info("▶️ Trading pause expired, resuming")
+                self.logger.info(" Trading pause expired, resuming")
             self.pause_until = None
             return False
         
@@ -109,7 +109,7 @@ class CircuitBreaker:
         self.size_reduction_active = True
         
         if self.logger:
-            self.logger.warning("📉 Position size reduced to 50% due to drawdown")
+            self.logger.warning(" Position size reduced to 50% due to drawdown")
     
     def get_size_multiplier(self) -> float:
         """
@@ -143,7 +143,7 @@ class CircuitBreaker:
         self.size_reduction_active = False
         
         if self.logger:
-            self.logger.info("🔄 Circuit breaker reset for new day")
+            self.logger.info(" Circuit breaker reset for new day")
     
     def get_status(self) -> Dict:
         """Get current circuit breaker status."""
@@ -194,8 +194,8 @@ class AnomalyDetector:
         if current_atr > (avg_atr * threshold_multiplier):
             if self.logger:
                 self.logger.warning(
-                    f"⚠️ VOLATILITY SPIKE: ATR {current_atr:.4f} > "
-                    f"{threshold_multiplier}× avg ({avg_atr:.4f})"
+                    f" VOLATILITY SPIKE: ATR {current_atr:.4f} > "
+                    f"{threshold_multiplier} avg ({avg_atr:.4f})"
                 )
             return True
         
@@ -229,7 +229,7 @@ class AnomalyDetector:
         if time_span < 300:  # 5 minutes
             if self.logger:
                 self.logger.error(
-                    f"🚨 CRITICAL: {self.max_consecutive_errors} broker errors "
+                    f" CRITICAL: {self.max_consecutive_errors} broker errors "
                     f"in {time_span:.0f} seconds"
                 )
             return True
@@ -267,7 +267,7 @@ class AnomalyDetector:
         if slippage_pct > max_slippage_pct:
             if self.logger:
                 self.logger.warning(
-                    f"⚠️ EXCESSIVE SLIPPAGE: {slippage_pct*100:.2f}% | "
+                    f" EXCESSIVE SLIPPAGE: {slippage_pct*100:.2f}% | "
                     f"Expected: {expected_price:.2f}, Fill: {fill_price:.2f}"
                 )
             return True

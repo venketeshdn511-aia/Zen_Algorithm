@@ -106,7 +106,7 @@ class BBSqueezeBreakoutStrategy(StrategyInterface):
                     'risk': risk,
                     'pattern': 'BB Squeeze Breakout (Synced)'
                 }
-                self.current_status = "🔴 SELL SIGNAL: Synced BB Squeeze Breakout"
+                self.current_status = " SELL SIGNAL: Synced BB Squeeze Breakout"
                 return 'sell'
 
         return None

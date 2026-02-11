@@ -59,19 +59,19 @@ def send_login_otp(username, app_id):
         try:
             data = response.json()
         except json.JSONDecodeError:
-            logger.error(f"❌ send_login_otp failed (Non-JSON response): {response.text}")
+            logger.error(f" send_login_otp failed (Non-JSON response): {response.text}")
             return None
         
         if data.get('s') == 'ok':
             request_key = data.get('request_key')
-            logger.info("✅ Login OTP sent successfully")
+            logger.info(" Login OTP sent successfully")
             return request_key
         else:
-            logger.error(f"❌ send_login_otp failed: {data}")
+            logger.error(f" send_login_otp failed: {data}")
             return None
             
     except Exception as e:
-        logger.error(f"❌ send_login_otp error: {e}")
+        logger.error(f" send_login_otp error: {e}")
         return None
 
 def verify_pin(request_key, pin):
@@ -94,12 +94,12 @@ def verify_pin(request_key, pin):
         
         if data.get('s') == 'ok':
             access_token = data.get('data', {}).get('access_token')
-            logger.info("✅ PIN verified successfully (plain)")
+            logger.info(" PIN verified successfully (plain)")
             return access_token
         
         # If failed due to Invalid PIN, try hashed PIN
         if data.get('code') == -1006 or "Invalid PIN" in data.get('message', ''):
-            logger.info("🔄 Retrying PIN verification with hashed PIN...")
+            logger.info(" Retrying PIN verification with hashed PIN...")
             payload["identifier"] = hashlib.sha256(str(pin).encode()).hexdigest()
             
             response = requests.post(url, json=payload, timeout=30)
@@ -107,14 +107,14 @@ def verify_pin(request_key, pin):
             
             if data.get('s') == 'ok':
                 access_token = data.get('data', {}).get('access_token')
-                logger.info("✅ PIN verified successfully (hashed)")
+                logger.info(" PIN verified successfully (hashed)")
                 return access_token
         
-        logger.error(f"❌ verify_pin failed: {data}")
+        logger.error(f" verify_pin failed: {data}")
         return None
             
     except Exception as e:
-        logger.error(f"❌ verify_pin error: {e}")
+        logger.error(f" verify_pin error: {e}")
         return None
 
 def verify_totp(request_key, totp_code):
@@ -135,14 +135,14 @@ def verify_totp(request_key, totp_code):
         
         if data.get('s') == 'ok':
             new_request_key = data.get('request_key')
-            logger.info("✅ TOTP verified successfully")
+            logger.info(" TOTP verified successfully")
             return new_request_key
         else:
-            logger.error(f"❌ verify_totp failed: {data}")
+            logger.error(f" verify_totp failed: {data}")
             return None
             
     except Exception as e:
-        logger.error(f"❌ verify_totp error: {e}")
+        logger.error(f" verify_totp error: {e}")
         return None
 
 def get_auth_code(access_token, app_id, redirect_uri, secret_id):
@@ -183,14 +183,14 @@ def get_auth_code(access_token, app_id, redirect_uri, secret_id):
                 params = parse_qs(parsed.query)
                 auth_code = params.get('auth_code', [None])[0]
                 if auth_code:
-                    logger.info("✅ Auth code obtained successfully")
+                    logger.info(" Auth code obtained successfully")
                     return auth_code
         
-        logger.error(f"❌ get_auth_code failed: {data}")
+        logger.error(f" get_auth_code failed: {data}")
         return None
             
     except Exception as e:
-        logger.error(f"❌ get_auth_code error: {e}")
+        logger.error(f" get_auth_code error: {e}")
         return None
 
 def generate_access_token(auth_code, app_id, secret_id, redirect_uri):
@@ -214,14 +214,14 @@ def generate_access_token(auth_code, app_id, secret_id, redirect_uri):
         if response.get('s') == 'ok' or response.get('code') == 200:
             access_token = response.get('access_token')
             refresh_token = response.get('refresh_token', '')
-            logger.info("✅ Final access token generated successfully!")
+            logger.info(" Final access token generated successfully!")
             return access_token, refresh_token
         else:
-            logger.error(f"❌ generate_access_token failed: {response}")
+            logger.error(f" generate_access_token failed: {response}")
             return None, None
             
     except Exception as e:
-        logger.error(f"❌ generate_access_token error: {e}")
+        logger.error(f" generate_access_token error: {e}")
         return None, None
 
 def refresh_access_token(refresh_token, app_id, secret_id, pin):
@@ -257,7 +257,7 @@ def refresh_access_token(refresh_token, app_id, secret_id, pin):
         # Add delay to avoid rate limiting
         time.sleep(2)
         
-        logger.info(f"🔄 Requesting new access token via refresh_token...")
+        logger.info(f" Requesting new access token via refresh_token...")
         
         try:
             response = requests.post(url, json=payload, headers=headers, timeout=30)
@@ -265,20 +265,20 @@ def refresh_access_token(refresh_token, app_id, secret_id, pin):
         except requests.exceptions.JSONDecodeError:
             # Cloudflare returned HTML instead of JSON
             if "cloudflare" in response.text.lower() or "error 1015" in response.text.lower():
-                logger.error("❌ Cloudflare rate limiting detected")
-                logger.error("⚠️ Too many requests from this IP address")
+                logger.error(" Cloudflare rate limiting detected")
+                logger.error(" Too many requests from this IP address")
             else:
-                logger.error(f"❌ Non-JSON response: {response.text[:200]}")
+                logger.error(f" Non-JSON response: {response.text[:200]}")
             return None, None
         
         if response_data.get('s') == 'ok':
             new_access_token = response_data.get('access_token')
             new_refresh_token = response_data.get('refresh_token', refresh_token)
-            logger.info("✅ Token refreshed successfully!")
+            logger.info(" Token refreshed successfully!")
             return new_access_token, new_refresh_token
         
         # Fallback: Try hashed PIN if plain failed
-        logger.info("🔄 Retrying refresh with hashed PIN...")
+        logger.info(" Retrying refresh with hashed PIN...")
         payload["pin"] = hashlib.sha256(str(pin).encode()).hexdigest()
         
         time.sleep(2)  # Add delay before retry
@@ -287,21 +287,21 @@ def refresh_access_token(refresh_token, app_id, secret_id, pin):
             response = requests.post(url, json=payload, headers=headers, timeout=30)
             response_data = response.json()
         except requests.exceptions.JSONDecodeError:
-            logger.error("❌ Non-JSON response on retry")
+            logger.error(" Non-JSON response on retry")
             return None, None
         
         if response_data.get('s') == 'ok':
             new_access_token = response_data.get('access_token')
             new_refresh_token = response_data.get('refresh_token', refresh_token)
-            logger.info("✅ Token refreshed successfully using hashed PIN!")
+            logger.info(" Token refreshed successfully using hashed PIN!")
             return new_access_token, new_refresh_token
         else:
-            logger.warning(f"❌ Refresh failed: {response_data.get('message', 'Unknown error')}")
+            logger.warning(f" Refresh failed: {response_data.get('message', 'Unknown error')}")
             return None, None
 
             
     except Exception as e:
-        logger.error(f"⚠️ Refresh token error: {e}")
+        logger.error(f" Refresh token error: {e}")
         return None, None
 
 
@@ -327,14 +327,14 @@ def auto_login():
     if not secret_id: missing.append('FYERS_SECRET_ID')
     
     if missing:
-        logger.error(f"❌ Missing credentials: {', '.join(missing)}")
+        logger.error(f" Missing credentials: {', '.join(missing)}")
         return None, None
     
     # Standardize App ID
     if len(app_id) == 10:
         app_id += "-100"
     
-    logger.info(f"🔐 Starting auto-login for {username}...")
+    logger.info(f" Starting auto-login for {username}...")
     
     # Step 1: Send login OTP
     request_key = send_login_otp(username, app_id)
@@ -346,7 +346,7 @@ def auto_login():
     if not totp_code:
         return None, None
     
-    logger.info(f"🔑 Generated TOTP: {totp_code}")
+    logger.info(f" Generated TOTP: {totp_code}")
     
     request_key = verify_totp(request_key, totp_code)
     if not request_key:
@@ -366,7 +366,7 @@ def auto_login():
     access_token, refresh_token = generate_access_token(auth_code, app_id, secret_id, redirect_uri)
     
     if access_token:
-        logger.info("🎉 Auto-login completed successfully!")
+        logger.info(" Auto-login completed successfully!")
         return access_token, refresh_token
     
     return None, None
@@ -377,7 +377,7 @@ def _save_tokens(access_token, refresh_token, db_handler=None):
     try:
         with open('.fyers_token', 'w') as f:
             f.write(access_token)
-        logger.info("💾 Token saved to .fyers_token")
+        logger.info(" Token saved to .fyers_token")
     except Exception as e:
         logger.warning(f"Could not save token to file: {e}")
     
@@ -393,7 +393,7 @@ def _save_tokens(access_token, refresh_token, db_handler=None):
                 }},
                 upsert=True
             )
-            logger.info("☁️ Token saved to MongoDB")
+            logger.info(" Token saved to MongoDB")
         except Exception as e:
             logger.warning(f"Could not save token to MongoDB: {e}")
 
@@ -426,16 +426,16 @@ def validate_and_refresh_token(db_handler=None):
             fyers = fyersModel.FyersModel(client_id=app_id, token=current_token, log_path="")
             profile = fyers.get_profile()
             if profile.get('s') == 'ok':
-                logger.info("✅ Existing token is valid")
+                logger.info(" Existing token is valid")
                 return True, current_token
             else:
-                logger.info(f"⚠️ Token validation failed (will try auto-login): {profile}")
+                logger.info(f" Token validation failed (will try auto-login): {profile}")
         except Exception as e:
-            logger.info(f"ℹ️ Existing token expired or invalid: {e}")
+            logger.info(f" Existing token expired or invalid: {e}")
     
     # Try refresh token (valid for 15 days - enables autonomous operation)
     if current_refresh_token and secret_id and pin:
-        logger.info("🔄 Attempting token refresh using refresh_token...")
+        logger.info(" Attempting token refresh using refresh_token...")
         new_access_token, new_refresh_token = refresh_access_token(
             current_refresh_token, app_id, secret_id, pin
         )
@@ -450,11 +450,11 @@ def validate_and_refresh_token(db_handler=None):
             _save_tokens(new_access_token, new_refresh_token, db_handler)
             return True, new_access_token
         else:
-            logger.warning(f"⚠️ Token refresh failed. This usually means the FYERS_REFRESH_TOKEN in .env is expired or invalid.")
+            logger.warning(f" Token refresh failed. This usually means the FYERS_REFRESH_TOKEN in .env is expired or invalid.")
 
     
     # Fallback: Try full auto-login (may fail due to Fyers limitations)
-    logger.info("🔄 Attempting full auto-login...")
+    logger.info(" Attempting full auto-login...")
     
     access_token, refresh_token = auto_login()
     
@@ -468,7 +468,7 @@ def validate_and_refresh_token(db_handler=None):
         try:
             with open('.fyers_token', 'w') as f:
                 f.write(access_token)
-            logger.info("💾 Token saved to .fyers_token")
+            logger.info(" Token saved to .fyers_token")
         except Exception as e:
             logger.warning(f"Could not save token to file: {e}")
         
@@ -484,20 +484,20 @@ def validate_and_refresh_token(db_handler=None):
                     }},
                     upsert=True
                 )
-                logger.info("☁️ Token saved to MongoDB")
+                logger.info(" Token saved to MongoDB")
             except Exception as e:
                 logger.warning(f"Could not save token to MongoDB: {e}")
         
         return True, access_token
     
-    logger.error("❌ Auto-login failed. Manual intervention required.")
+    logger.error(" Auto-login failed. Manual intervention required.")
     
     # Send Emergency Alert (Standalone to avoid circular imports)
     try:
         bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
         chat_id = os.getenv('TELEGRAM_CHAT_ID')
         if bot_token and chat_id:
-            msg = "❌ <b>CRITICAL: Auto-Login Failed</b>\nBot could not regenerate access token.\nManual intervention required immediately."
+            msg = " <b>CRITICAL: Auto-Login Failed</b>\nBot could not regenerate access token.\nManual intervention required immediately."
             url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
             requests.post(url, json={"chat_id": chat_id, "text": msg, "parse_mode": "HTML"}, timeout=5)
     except Exception as e:
@@ -520,9 +520,9 @@ if __name__ == "__main__":
     is_valid, token = validate_and_refresh_token()
     
     if is_valid:
-        print(f"\n✅ SUCCESS!")
+        print(f"\n SUCCESS!")
         print(f"Token: {token[:50]}...")
     else:
-        print(f"\n❌ FAILED - Check credentials")
+        print(f"\n FAILED - Check credentials")
     
     print("=" * 60)

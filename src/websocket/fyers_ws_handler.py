@@ -13,15 +13,15 @@ from queue import Queue
 try:
     # Try Fyers API v3 (Standard path)
     from fyers_apiv3.FyersWebsocket import data_ws
-    print("✅ FyersWebsocket imported successfully")
+    print(" FyersWebsocket imported successfully")
 except ImportError as e1:
     try:
         # Try Fyers API v3 (Alternative path)
         from fyers_apiv3.FyersDataSocket import data_ws
-        print("✅ FyersDataSocket imported successfully")
+        print(" FyersDataSocket imported successfully")
     except ImportError as e2:
         data_ws = None
-        print(f"⚠️ WebSocket import failed:")
+        print(f" WebSocket import failed:")
         print(f"   - FyersWebsocket: {e1}")
         print(f"   - FyersDataSocket: {e2}")
         print("   Bot will use REST polling instead (non-critical).")
@@ -175,7 +175,7 @@ class BarAggregator:
                  self.completed_bars[interval][symbol] = []
                  
             self.completed_bars[interval][symbol] = bar_list
-            print(f"✅ WebSocket Memory Primed: {len(bar_list)} bars for {symbol} ({interval}m)")
+            print(f" WebSocket Memory Primed: {len(bar_list)} bars for {symbol} ({interval}m)")
 
 
 class FyersWebSocketHandler:

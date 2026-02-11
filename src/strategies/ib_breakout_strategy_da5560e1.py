@@ -72,7 +72,7 @@ class IBBreakoutStrategy(StrategyInterface):
                 'risk': risk,
                 'pattern': 'IB Breakout Bearish'
             }
-            self.current_status = "🔴 SELL SIGNAL: IB Breakout Bearish"
+            self.current_status = " SELL SIGNAL: IB Breakout Bearish"
             return 'sell'
 
         return None

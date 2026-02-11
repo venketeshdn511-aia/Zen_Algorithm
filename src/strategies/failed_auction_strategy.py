@@ -1,126 +1,146 @@
-"""
-Failed Auction b2 (Market Profile) - 15m
-Algorithmic Logic & Concepts
-
-User Definition: 
-"Failed Auction Bullish" -> Price tries to go Up (Bullish), Fails, Breaks range but returns inside.
-Action: SHORT the market.
-
-Logic:
-- Entry: Short (Sell)
-- Pattern: Sweep Swing High (Resistance) + Close Below (Rejection)
-- Zone: Premium Zone (Upper 50% implied by testing High)
-- Trend: Price > VWAP (Reversion trade? or Failure of uptrend)
-- RSI: 40-60
-"""
+from src.core.base_strategy import BaseStrategy, INITIAL_CAPITAL, LOT_SIZE
+from src.utils.indicators import calculate_rsi, calculate_vwap, calculate_atr
 import pandas as pd
 import numpy as np
-from src.interfaces.strategy_interface import StrategyInterface
+import re
 
-class FailedAuctionStrategy(StrategyInterface):
-    def __init__(self, rsi_period=14, lookback_period=20, range_period=50):
-        super().__init__("Failed Auction b2")
-        self.rsi_period = rsi_period
-        self.lookback_period = lookback_period
-        self.range_period = range_period
-        self.current_status = "Initializing..."
-        self.last_signal_data = {}
-
-    def get_status(self):
-        return self.current_status
-
-    def _calculate_rsi(self, series, period=14):
-        delta = series.diff()
-        gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
-        rs = gain / loss
-        return 100 - (100 / (1 + rs))
-
-    def _calculate_vwap(self, df):
-        df = df.copy()
-        if 'date' not in df.columns:
-            df['date'] = df.index.date
-        df['typical_price'] = (df['High'] + df['Low'] + df['Close']) / 3
-        df['pv'] = df['typical_price'] * df['Volume']
-        df['cum_pv'] = df.groupby('date')['pv'].cumsum()
-        df['cum_vol'] = df.groupby('date')['Volume'].cumsum()
-        return df['cum_pv'] / df['cum_vol']
-
-    def detect_failed_auction_bullish(self, df):
-        """
-        User Definition: Failed Bullish Auction = Failed Up Move.
-        Logic: Sweep Swing High & Close Below.
-        """
-        curr = df.iloc[-1]
-        # Lookback excluding current
-        past_df = df.iloc[-(self.lookback_period+1):-1]
+class FailedAuctionStrategy(BaseStrategy):
+    def __init__(self, broker=None):
+        super().__init__("Failed Auction b2", INITIAL_CAPITAL)
+        self.allowed_regimes = ['REVERSAL']
+        self.risk_pct = 0.02
+        self.rr_ratio = 2.0
+        self.broker = broker
+        self.lookback_period = 20
+        self.range_period = 50
         
-        resistance_level = past_df['High'].max()
-        
-        # Bullish break attempt
-        swept = curr['High'] > resistance_level
-        # Failed to hold (Close below)
-        rejected = curr['Close'] < resistance_level
-        
-        return (swept and rejected), resistance_level
-
     def detect_premium_zone(self, df):
         """Price in upper 50% of recent range (Required to test Highs)"""
-        curr_price = df['Close'].iloc[-1]
+        # We need at least range_period bars
+        if len(df) < self.range_period: return False, 0, 0
+        
         recent_df = df.iloc[-self.range_period:]
-        r_high = recent_df['High'].max()
-        r_low = recent_df['Low'].min()
+        r_high = recent_df['high'].max()
+        r_low = recent_df['low'].min()
         r_mid = (r_high + r_low) / 2
         
+        curr_price = df['close'].iloc[-1]
         is_premium = curr_price > r_mid
         return is_premium, r_low, r_high
 
-    def calculate_signal(self, df):
-        if len(df) < max(self.range_period, self.lookback_period, 50):
-            self.current_status = f"Warming up ({len(df)} bars)"
-            return None
-        
-        df = df.copy()
-        df['rsi'] = self._calculate_rsi(df['Close'], self.rsi_period)
-        df['vwap'] = self._calculate_vwap(df)
+    def detect_failed_auction_bullish(self, df):
+        """
+        Logic: Sweep Swing High & Close Below.
+        """
+        if len(df) < self.lookback_period + 2: return False, 0
         
         curr = df.iloc[-1]
-        close_p = curr['Close']
-        rsi = curr['rsi']
-        vwap = curr['vwap']
+        # Lookback excluding current bar for resistance
+        past_df = df.iloc[-(self.lookback_period+1):-1]
         
-        # 1. RSI (40-60)
-        if not (40 <= rsi <= 60):
-            self.current_status = f"RSI {rsi:.1f} not in 40-60 range."
-            return None
-            
-        # 2. VWAP (Price > VWAP as per request)
-        if not (close_p > vwap):
-            self.current_status = "Price below VWAP (Trend Filter)."
-            return None
+        resistance_level = past_df['high'].max()
         
-        # 3. Zone Check (Premium implied by High test)
-        is_premium, r_low, r_high = self.detect_premium_zone(df)
-        if not is_premium:
-             self.current_status = "Price not in Premium Zone (Cannot fail high)."
-             return None
-             
-        # 4. Failed Auction Check
-        is_failed_auction, resistance_level = self.detect_failed_auction_bullish(df)
+        # Bullish break attempt: High > Resistance
+        swept = curr['high'] > resistance_level
+        # Failed to hold: Close < Resistance
+        rejected = curr['close'] < resistance_level
         
-        self.current_status = f"Scanning... RSI:{rsi:.1f} VWAP:{vwap:.1f} Premium:Yes"
+        return (swept and rejected), resistance_level
 
-        if is_failed_auction:
-            # SHORT Signal
-            stop_loss = max(curr['High'], resistance_level)
-            risk = stop_loss - close_p
-            if risk <= 0: risk = close_p * 0.001
-            target = close_p - (risk * 2.0)
+    def process(self, df, current_bar):
+        if len(df) < max(self.range_period, self.lookback_period, 50): 
+            self.status = f"Warming up ({len(df)} bars)"
+            return
+
+        # 1. Indicators
+        df['rsi'] = calculate_rsi(df['close'], 14)
+        df['vwap'] = calculate_vwap(df)
+        atr_series = calculate_atr(df, 14)
+        atr = atr_series.iloc[-1]
+        
+        # Market Narrative Update
+        spot_price, rsi, trend = self.update_market_status(df)
+        vwap = df['vwap'].iloc[-1]
+        
+        if self.position is None:
+            # Entry Logic
             
-            self.last_signal_data = {
-                'side': 'sell', 'entry': close_p, 'stop_loss': stop_loss,
-                'take_profit': target, 'risk': risk, 'pattern': 'Failed Auction (Bullish Failure)'
-            }
-            return 'sell'
+            # 1. RSI Filter (40-60)
+            if not (40 <= rsi <= 60):
+                self.status = f"{self.market_narrative} | Logic: Waiting for RSI Compression (40-60)."
+                return
+
+            # 2. VWAP Filter (Price > VWAP)
+            if not (spot_price > vwap):
+                self.status = f"{self.market_narrative} | Logic: Underlying below VWAP (Trend Filter)."
+                return
+
+            # 3. Premium Zone Check
+            is_premium, _, r_high = self.detect_premium_zone(df)
+            if not is_premium:
+                self.status = f"{self.market_narrative} | Logic: Waiting for Premium Rejection near {r_high:.1f}."
+                return
+
+            # 4. Pattern Check: Failed Auction
+            is_failed_auction, resistance_level = self.detect_failed_auction_bullish(df)
             
-        return None
+            if is_failed_auction and self.broker:
+                self.status = f"Failed Auction Detected at {resistance_level:.1f}!"
+                
+                # Logic says SHORT the market -> Buy PE
+                premium, symbol, strike = self.get_option_params(spot_price, 'sell', self.broker) # side='sell' for strategy logic means we want to short underlying
+                if not premium: return
+                
+                # Stop Loss: Resistance Level (Swing High)
+                # We need to translate Spot Stop to Option Stop
+                
+                # Risk in Spot
+                stop_loss_spot = max(row['high'], resistance_level)
+                risk_spot = stop_loss_spot - spot_price
+                if risk_spot <= 0: risk_spot = spot_price * 0.001
+                
+                # Estimate Option Risk (Delta approx 0.5)
+                risk_premium = risk_spot * 0.5
+                
+                stop = premium - risk_premium
+                target = premium + (risk_premium * self.rr_ratio)
+                
+                # Size based on risk
+                risk_amount = self.capital * self.risk_pct
+                lots = max(1, int(risk_amount / (risk_premium * LOT_SIZE)))
+                
+                self.current_strike = strike
+                self.status = f"Short Signal (Failed Auction). Buying {symbol}."
+                
+                # We store the spot stop for trailing
+                self.execute_trade(premium, 'buy', stop, target, lots * LOT_SIZE, symbol=symbol)
+                if self.position:
+                    self.position['spot_stop'] = stop_loss_spot
+                    self.position['strike'] = strike
+                    
+        else:
+            # Exit Management
+            self.update_trailing_stop(df)
+            pos = self.position
+            match = re.search(r'NIFTY[A-Z0-9]+?(\d{5})(CE|PE)', pos['symbol'])
+            
+            if match and self.broker:
+                curr_premium = self.broker.fyers.get_option_chain(int(match.group(1)), match.group(2))
+                if not curr_premium: return
+                
+                spot_stop = pos.get('spot_stop', 0)
+                self.status = f"Active {pos['symbol']}: {curr_premium:.1f} | Spot: {current_spot:.1f}"
+
+                # Check Spot Stop (Hard/Structural Stop)
+                if current_spot >= spot_stop: # For PE Buy, if Spot goes UP to Stop
+                     self.status = f"Spot Stop Hit @ {spot_stop:.1f}"
+                     self.close_trade(curr_premium, 'spot_sl')
+                     return
+
+                # Check Option Targets/Stops
+                if curr_premium <= pos['sl']: 
+                    self.close_trade(pos['sl'], 'stop')
+                elif curr_premium >= pos['target']: 
+                    self.close_trade(pos['target'], 'target')
+                else:
+                    self.position['ltp'] = curr_premium

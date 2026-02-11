@@ -64,7 +64,7 @@ class Simulator:
 
     def run(self):
         """Run the simulation loop."""
-        self.logger.info("🚀 Starting Simulation...")
+        self.logger.info(" Starting Simulation...")
         
         # Pre-feed broker with full data (for get_history slicer)
         # TODO: Implement get_history in BacktestBroker properly
@@ -93,7 +93,7 @@ class Simulator:
                 # Update strategy state
                 strategy.process(df_slice, current_bar)
                 
-        self.logger.info("🏁 Simulation Complete")
+        self.logger.info(" Simulation Complete")
         self._print_results()
 
     def _print_results(self):
@@ -103,7 +103,7 @@ class Simulator:
         for strat in self.engine.strategies:
             stats = strat.get_stats()
             print(f"\nStrategy: {stats['name']}")
-            print(f"PnL: ₹{stats['pnl']}")
+            print(f"PnL: {stats['pnl']}")
             print(f"Trades: {stats['wins'] + stats['losses']}")
             print(f"Win Rate: {stats['win_rate']}%")
             total_pnl += stats['pnl']
@@ -114,7 +114,7 @@ class Simulator:
                 for t in stats['trades'][-3:]:
                     print(f"  {t['side']} {t['entry']} -> {t['exit']} ({t['reason']}) PnL: {t['pnl']}")
 
-        print(f"\nTotal Portfolio PnL: ₹{total_pnl:.2f}")
+        print(f"\nTotal Portfolio PnL: {total_pnl:.2f}")
 
 
 if __name__ == "__main__":

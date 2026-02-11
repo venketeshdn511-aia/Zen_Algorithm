@@ -18,7 +18,7 @@ class StatisticalStatArbAdapter(BaseStrategy):
         super().__init__("Statistical Sniper", 15000)
         self.broker = broker
         
-        # Strategy Parameters (Optimized for ₹5,000/mo profit)
+        # Strategy Parameters (Optimized for 5,000/mo profit)
         self.period = 20
         self.ker_threshold = 0.30 # Wider filter for more frequency
         self.z_entry = 2.0         # 2.0 is the sweet spot for Sniper entries
@@ -190,7 +190,7 @@ class StatisticalStatArbAdapter(BaseStrategy):
                 reason = "Expiry Day Cutoff (15:15)"
                 
             if should_close:
-                print(f"⚠️ STAT ARB EXPIRY EXIT: {reason}. Closing {option_sym}")
+                print(f" STAT ARB EXPIRY EXIT: {reason}. Closing {option_sym}")
                 self.broker.close_position(option_sym) 
                 del self.position_state["NSE:NIFTY50-INDEX"]
                 return True
@@ -272,7 +272,7 @@ class StatisticalStatArbAdapter(BaseStrategy):
                     'stop_loss_premium': stop_loss_premium,
                     'target_premium': target_premium
                 }
-                print(f"🚀 STAT ARB ENTRY: {signal} {num_lots} Lots. Spot: {entry_price:.2f}, Stop: {stop_loss:.2f}")
+                print(f" STAT ARB ENTRY: {signal} {num_lots} Lots. Spot: {entry_price:.2f}, Stop: {stop_loss:.2f}")
                 print(f"   Option: {option_sym} @ {entry_premium:.2f} | P-SL: {stop_loss_premium:.2f} | P-TGT: {target_premium:.2f}")
 
     def _check_exits(self, state, curr, option_sym, qty_left, opt_ltp):
@@ -310,7 +310,7 @@ class StatisticalStatArbAdapter(BaseStrategy):
         
         # EXECUTE EXIT
         if hit_stop:
-            print(f"🛑 STAT ARB STOP: {exit_reason}. Closing {qty_left} lots.")
+            print(f" STAT ARB STOP: {exit_reason}. Closing {qty_left} lots.")
             self.broker.close_position(option_sym)
             del self.position_state["NSE:NIFTY50-INDEX"]
             return
@@ -324,14 +324,14 @@ class StatisticalStatArbAdapter(BaseStrategy):
             qty_to_close = int(initial_qty * 0.90)
             if qty_to_close > 0 and qty_to_close < qty_left:
                 reason = "Spot Dist" if spot_target_hit else "Premium Price"
-                print(f"🎯 STAT ARB T1 HIT ({reason}). Scaling out {qty_to_close} lots (90%).")
+                print(f" STAT ARB T1 HIT ({reason}). Scaling out {qty_to_close} lots (90%).")
                 self.broker.close_position(option_sym, qty=qty_to_close)
                 state['stage'] = 1
                 
                 # Move Stop to Breakeven
                 state['stop_loss_spot'] = state['entry_price_spot']
                 state['stop_loss_premium'] = state['entry_premium'] # Move Prem SL to BE too
-                print(f"🛡️ SL moved to Breakeven (Spot & Premium).")
+                print(f" SL moved to Breakeven (Spot & Premium).")
                 
             elif qty_to_close >= qty_left:
                 self.broker.close_position(option_sym)

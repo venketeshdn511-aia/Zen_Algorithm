@@ -67,7 +67,7 @@ class MLPredictor:
             self.model = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=42)
             self.model.fit(X, y)
             self.is_ready = True
-            self.logger.info(f"🧠 ML Model trained on {len(X)} trades")
+            self.logger.info(f" ML Model trained on {len(X)} trades")
             return True
             
         except Exception as e:

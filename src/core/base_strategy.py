@@ -35,10 +35,26 @@ class BaseStrategy:
         self.losses = 0
         self.daily_start_capital = capital
         self.status = "Monitoring..."
+        self.paused = False
         self.allowed_regimes = ['ALL']
         
     def get_fyers_expiry_code(self):
         return get_next_nifty_expiry()
+
+    def update_market_status(self, df):
+        if df is None or len(df) < 2: return
+        
+        row = df.iloc[-1]
+        prev = df.iloc[-2]
+        spot = float(row['close'])
+        rsi = float(row.get('rsi', 50))
+        
+        trend = "Bullish" if spot > row.get('vwap', spot) else "Bearish"
+        rsi_state = "Overbought" if rsi > 70 else "Oversold" if rsi < 30 else "Neutral"
+        
+        # Base Narrative
+        self.market_narrative = f"Nifty: {spot:.1f} ({trend}) | RSI: {rsi:.1f} ({rsi_state})"
+        return spot, rsi, trend
 
     def get_stats(self):
         pnl = self.capital - self.initial_capital
@@ -48,6 +64,8 @@ class BaseStrategy:
         win_rate = (self.wins / total_trades * 100) if total_trades > 0 else 0
         return {
             'name': self.name,
+            'status': 'Paused' if self.paused else self.status,
+            'paused': self.paused,
             'capital': round(self.capital, 2),
             'pnl': round(pnl, 2),
             'today_pnl': round(today_pnl, 2),
@@ -165,7 +183,7 @@ class BaseStrategy:
             if new_spot_stop != current_spot_stop:
                 change = abs(new_spot_stop - current_spot_stop)
                 if change > 5:
-                    self.status = f"Spot Trail: {current_spot_stop:.1f} → {new_spot_stop:.1f}"
+                    self.status = f"Spot Trail: {current_spot_stop:.1f}  {new_spot_stop:.1f}"
                     self.position['spot_stop'] = new_spot_stop
         else:
             current_stop = self.position['stop']
@@ -238,15 +256,15 @@ class BaseStrategy:
             conditions = self._get_current_conditions(df)
             should_skip, skip_reason = brain.should_skip_trade(conditions)
             if should_skip:
-                self.status = f"🧠 Warning (Ignored): {skip_reason}"
-                msg = f"🧠 <b>{self.name}</b>: Low Confidence Warning (Ignored)\n{skip_reason}"
+                self.status = f" Warning (Ignored): {skip_reason}"
+                msg = f" <b>{self.name}</b>: Low Confidence Warning (Ignored)\n{skip_reason}"
                 send_telegram_message(msg)
                 # return None  <-- DISABLED BY USER REQUEST
         
         size = LOT_SIZE
 
         if self.position:
-            self.status = "⚠️ Duplicate Entry Blocked: Position already exists."
+            self.status = " Duplicate Entry Blocked: Position already exists."
             return None
             
         # Time-based throttle (1 minute)
@@ -257,17 +275,19 @@ class BaseStrategy:
                 try:
                     last_entry = datetime.fromisoformat(last_entry_str)
                     if (datetime.now(ist) - last_entry).total_seconds() < 60:
-                        self.status = "⚠️ Throttle: Entry blocked (Min 60s between trades)."
+                        self.status = " Throttle: Entry blocked (Min 60s between trades)."
                         return None
                 except: pass
 
         self.position = {
             'side': side,
             'entry': entry_price,
-            'stop': stop,
+            'sl': stop,
             'target': target,
             'size': size,
             'symbol': symbol or self.name,
+            'strike': getattr(self, 'current_strike', 'N/A'),
+            'ltp': entry_price,
             'entry_time': datetime.now(ist).isoformat()
         }
         
@@ -277,25 +297,25 @@ class BaseStrategy:
         display_name = symbol if symbol else self.name
         
         # Attractive Telegram Signal
-        side_emoji = "🟢 BUY" if side == 'buy' else "🔴 SELL"
+        side_emoji = " BUY" if side == 'buy' else " SELL"
         msg = (
-            f"🚀 <b>{self.name}</b>\n"
-            f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"📣 <b>{side_emoji} SIGNAL</b>\n"
-            f"📦 <b>Asset:</b> <code>{display_name}</code>\n"
-            f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"🎯 <b>Entry:</b> {entry_price:.2f}\n"
-            f"🛑 <b>Stop Loss:</b> {stop:.2f}\n"
-            f"🏁 <b>Target:</b> {target:.2f}\n"
-            f"📊 <b>Size:</b> {size}\n"
+            f" <b>{self.name}</b>\n"
+            f"\n"
+            f" <b>{side_emoji} SIGNAL</b>\n"
+            f" <b>Asset:</b> <code>{display_name}</code>\n"
+            f"\n"
+            f" <b>Entry:</b> {entry_price:.2f}\n"
+            f" <b>Stop Loss:</b> {stop:.2f}\n"
+            f" <b>Target:</b> {target:.2f}\n"
+            f" <b>Size:</b> {size}\n"
         )
         
         if BRAIN_AVAILABLE and brain:
             try:
                 confidence = brain.get_confidence_score(self.position.get('conditions', {}))
-                conf_emoji = "🔥" if confidence > 80 else "⚡"
-                msg += f"━━━━━━━━━━━━━━━━━━━━\n"
-                msg += f"🧠 <b>AI Confidence:</b> {confidence}% {conf_emoji}"
+                conf_emoji = "" if confidence > 80 else ""
+                msg += f"\n"
+                msg += f" <b>AI Confidence:</b> {confidence}% {conf_emoji}"
             except: pass
 
         send_telegram_message(msg)
@@ -324,7 +344,7 @@ class BaseStrategy:
             else:
                 pnl = (self.position['entry'] - exit_price) * self.position['size']
             
-            # Brokerage (Approx ₹60 per round trip)
+            # Brokerage (Approx 60 per round trip)
             brokerage = 60
             pnl -= brokerage
             
@@ -347,18 +367,18 @@ class BaseStrategy:
             if len(self.trades) > 5000:
                 self.trades = self.trades[-5000:]
             
-            pnl_status = "PROFIT 💰" if pnl > 0 else "LOSS 📉"
-            status_emoji = "✅" if pnl > 0 else "❌"
+            pnl_status = "PROFIT " if pnl > 0 else "LOSS "
+            status_emoji = "" if pnl > 0 else ""
             
             msg = (
                 f"{status_emoji} <b>{self.name} - Trade Closed</b>\n"
-                f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"🏁 <b>Result:</b> {pnl_status}\n"
-                f"💵 <b>Net PnL:</b> ₹{pnl:.2f}\n"
-                f"🚪 <b>Exit Price:</b> {exit_price:.2f}\n"
-                f"📝 <b>Reason:</b> {reason}\n"
-                f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"💰 <b>Updated Capital:</b> ₹{self.capital:.2f}"
+                f"\n"
+                f" <b>Result:</b> {pnl_status}\n"
+                f" <b>Net PnL:</b> {pnl:.2f}\n"
+                f" <b>Exit Price:</b> {exit_price:.2f}\n"
+                f" <b>Reason:</b> {reason}\n"
+                f"\n"
+                f" <b>Updated Capital:</b> {self.capital:.2f}"
             )
             send_telegram_message(msg)
             
@@ -389,6 +409,6 @@ class BaseStrategy:
                 except: pass
 
             self.position = None
-            self.status = "Monitoring..."
+            self.status = "Scanning alpha vectors..."
             return pnl
         return 0

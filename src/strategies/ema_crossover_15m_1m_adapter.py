@@ -93,19 +93,19 @@ class EMACrossover15m1mAdapter(BaseStrategy):
             status_msg = f"15m: {trend_status} (F:{ema_f:.0f}/S:{ema_s:.0f}) | Spot: {spot_price:.0f}"
             
             if not in_kill_zone:
-                status_msg += " | 💤 Outside Kill Zone"
+                status_msg += " |  Outside Kill Zone"
             elif ema_f <= ema_s:
-                status_msg += " | ❌ No Trend Setup"
+                status_msg += " |  No Trend Setup"
             elif spot_price <= ema_f or spot_price <= ema_s:
-                status_msg += " | ❌ Price below EMA"
+                status_msg += " |  Price below EMA"
             else:
                 # Setup is Valid!
                 # Check Confirmation: 1m Bullish Candle
                 is_bullish_1m = row_1m['close'] > row_1m['open']
                 if not is_bullish_1m:
-                    status_msg += " | ⏳ Waiting 1m Green Candle"
+                    status_msg += " |  Waiting 1m Green Candle"
                 else:
-                    status_msg += " | ✅ TRIGGER: Bullish 1m"
+                    status_msg += " |  TRIGGER: Bullish 1m"
                     condition_status = "TRIGGER"
             
             self.status = status_msg
@@ -122,7 +122,7 @@ class EMACrossover15m1mAdapter(BaseStrategy):
                 # Option Selection
                 premium, symbol, strike = self.get_option_params(spot_price, 'buy', self.broker)
                 if not premium:
-                    self.status += " | ❌ Option Chain Error"
+                    self.status += " |  Option Chain Error"
                     return
                 
                 # Map Spot Risk to Premium Risk (Delta approx 0.5)
@@ -135,7 +135,7 @@ class EMACrossover15m1mAdapter(BaseStrategy):
                 lots = max(1, int(risk_amount / (premium_stop_dist * LOT_SIZE)))
                 qty = lots * LOT_SIZE
                 
-                self.status = f"🚀 Executing {symbol} @ {premium:.1f} | Tgt: {target:.1f}"
+                self.status = f" Executing {symbol} @ {premium:.1f} | Tgt: {target:.1f}"
                 self.execute_trade(premium, 'buy', stop, target, qty, symbol=symbol)
                 
         else:
@@ -157,7 +157,7 @@ class EMACrossover15m1mAdapter(BaseStrategy):
                 spot_stop = pos.get('spot_stop', 0)
                 
                 self.status = (
-                    f"🟢 {symbol}: {curr_premium:.1f} (Entry: {entry:.1f}) | "
+                    f" {symbol}: {curr_premium:.1f} (Entry: {entry:.1f}) | "
                     f"Spot Trail: {spot_stop:.0f} | " 
                     f"15m Trend: {trend_status}"
                 )
@@ -165,7 +165,7 @@ class EMACrossover15m1mAdapter(BaseStrategy):
                 # Exits
                 # 1. Spot Trail
                 if self.check_spot_trailing_stop(df):
-                    self.status = f"🛑 Spot Trail Hit @ {spot_stop:.0f}. Exiting."
+                    self.status = f" Spot Trail Hit @ {spot_stop:.0f}. Exiting."
                     self.close_trade(curr_premium, 'trailing_stop')
                     return
                 

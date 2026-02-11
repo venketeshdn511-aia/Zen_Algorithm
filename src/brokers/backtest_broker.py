@@ -29,7 +29,7 @@ class BacktestBroker:
         self.fyers = FyersMock()
         
     def authenticate(self):
-        self.logger.info("✅ Backtest Broker Authenticated")
+        self.logger.info(" Backtest Broker Authenticated")
         return True
     
     def get_atm_strike(self, price: float) -> int:
@@ -106,7 +106,7 @@ class BacktestBroker:
         # SimulationRunner prints "Total Trades: {len(self.broker.trades)}".
         # If Broker trades are empty, it means Strategies are not calling place_order.
         
-        msg = f"⚡ Backtest Order: {side} {qty} {symbol} @ {price}" 
+        msg = f" Backtest Order: {side} {qty} {symbol} @ {price}" 
         self.logger.info(msg)
         
         # Ensure we return a valid ID

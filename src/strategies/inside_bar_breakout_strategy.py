@@ -232,11 +232,11 @@ class InsideBarBreakoutStrategy(StrategyInterface):
         # 5. Breakout Below 20-Bar Low
         is_breakout, low_20 = self.breakout_below_20bar_low(df)
         if not is_breakout:
-            self.current_status = f"Inside Bar + RSI + VWAP ✓. Awaiting breakout < {low_20:.1f}"
+            self.current_status = f"Inside Bar + RSI + VWAP . Awaiting breakout < {low_20:.1f}"
             return None
         
         # ALL CONDITIONS MET - GENERATE SHORT SIGNAL
-        self.current_status = f"🔴 SHORT SIGNAL: Inside Bar Breakout @ {close_p:.1f}"
+        self.current_status = f" SHORT SIGNAL: Inside Bar Breakout @ {close_p:.1f}"
         
         # Entry Price (Simulating Stop Order at Breakout Level)
         entry_price = low_20

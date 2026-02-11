@@ -175,9 +175,9 @@ class CSVDataHandler:
         
         if self.logger:
             if is_valid:
-                self.logger.info("✅ Data validation passed")
+                self.logger.info(" Data validation passed")
             else:
-                self.logger.warning(f"⚠️ Data validation issues:\n" + "\n".join(f"  - {i}" for i in issues))
+                self.logger.warning(f" Data validation issues:\n" + "\n".join(f"  - {i}" for i in issues))
         
         return is_valid, issues
     

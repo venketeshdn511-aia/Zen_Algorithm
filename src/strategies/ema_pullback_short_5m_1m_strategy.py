@@ -1,4 +1,4 @@
-# ⚠️ WARNING: This code was NOT fully verified against backtest.
+#  WARNING: This code was NOT fully verified against backtest.
 # The PnL may differ slightly from the PDF report.
 # Please review and test before using in production.
 # ======================================================================
@@ -199,19 +199,19 @@ class EMA_Pullback_Short_5m_1m_TSL_174_Strategy:
         pullback_high = high >= ema_f
 
         if not trend_bearish:
-            self._status = f"🛑 Bearish trend lost (EMA 13 > 21). Looking for a structural flip before selling."
+            self._status = f" Bearish trend lost (EMA 13 > 21). Looking for a structural flip before selling."
         elif not pullback_high:
-            self._status = f"📉 Trend is Bearish. Waiting for a rally towards EMA 13 ({ema_f:.1f}) to sell high."
+            self._status = f" Trend is Bearish. Waiting for a rally towards EMA 13 ({ema_f:.1f}) to sell high."
         else:
             # Check entry through standard rules
             res = self.check_entry(df['open'].values, df['close'].values, df['high'].values, df['low'].values, ind, idx, df.index)
             if res == 'SHORT':
                 risk = max(abs(price - df['low'].iloc[idx]), abs(high - price))
                 self.last_signal_data = {'risk': risk, 'target_rr': self.risk_reward}
-                self._status = f"🎯 SETUP FOUND! Pullback to {ema_f:.1f} hit. Entering Short at {price:.2f}."
+                self._status = f" SETUP FOUND! Pullback to {ema_f:.1f} hit. Entering Short at {price:.2f}."
                 return 'buy'
             else:
-                self._status = f"👀 Rally to EMA 13 ({ema_f:.1f}) detected. Monitoring for rejection/confirmation..."
+                self._status = f" Rally to EMA 13 ({ema_f:.1f}) detected. Monitoring for rejection/confirmation..."
 
         return None
         

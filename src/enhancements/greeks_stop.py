@@ -123,7 +123,7 @@ class GreeksStopCalculator:
     def estimate_iv_from_atr(self, atr, spot_price):
         """
         Rough IV estimate when actual IV not available
-        IV ≈ (ATR / Price) * sqrt(252) * 100
+        IV  (ATR / Price) * sqrt(252) * 100
         """
         if spot_price == 0:
             return 20.0  # Default IV
@@ -141,7 +141,7 @@ class GreeksStopCalculator:
         Used for position sizing adjustments
         """
         # Vega peaks around 30 DTE for ATM options
-        # Simplest estimate: Vega ≈ sqrt(DTE) * 0.04 for ATM
+        # Simplest estimate: Vega  sqrt(DTE) * 0.04 for ATM
         
         if days_to_expiry < 1:
             vega_per_lot = 0.01  # Very low vega near expiry
