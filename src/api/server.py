@@ -57,10 +57,7 @@ def get_engine():
         raise RuntimeError("Engine not initialized in API")
     return engine_ref
 
-@app.route('/')
-def serve_frontend():
-    """Serve the React frontend"""
-    return send_from_directory(app.static_folder, 'index.html')
+
 
 @app.route('/api/stats')
 def get_stats():
@@ -413,7 +410,17 @@ def catch_all(path):
     """Serve React app for all non-API routes"""
     if path.startswith('api/'):
         return jsonify({"error": "API endpoint not found"}), 404
-    return send_from_directory(app.static_folder, 'index.html')
+    # Check if frontend build exists
+    index_path = os.path.join(app.static_folder, 'index.html')
+    if os.path.exists(index_path):
+        return send_from_directory(app.static_folder, 'index.html')
+    else:
+        return jsonify({
+            "error": "Frontend not built",
+            "static_folder": app.static_folder,
+            "index_exists": False,
+            "hint": "Run 'cd frontend && npm install && npm run build' first"
+        }), 500
 
 if __name__ == '__main__':
     # For testing purposes only
