@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Power, ArrowRight, Zap, ShieldAlert, Play, Pause } from 'lucide-react';
 import AnimatedNumber from '../common/AnimatedNumber';
@@ -9,8 +9,9 @@ const StrategyCard = ({ name, profit, profitPct, status, isPro, history = [0, 10
     const isPositive = profit >= 0;
     const isPaused = status === 'Paused' || !isMasterLive;
 
-    // Generate dynamic path based on history data
-    const generatePathData = (data) => {
+    // Memoize path data computation
+    const pathData = useMemo(() => {
+        const data = history;
         if (!data || data.length < 2) return "M0,20 L100,20";
         // Extract PnL values if data is objects
         const vals = typeof data[0] === 'object' ? data.map(t => t.pnl) : data;
@@ -24,9 +25,7 @@ const StrategyCard = ({ name, profit, profitPct, status, isPro, history = [0, 10
             const y = 110 - ((val - min) / range) * 100; // Scale to fit 120px height
             return `${i === 0 ? 'M' : 'L'}${x},${y}`;
         }).join(' ');
-    };
-
-    const pathData = generatePathData(history);
+    }, [history]);
 
     return (
         <div
@@ -225,4 +224,4 @@ const StrategyCard = ({ name, profit, profitPct, status, isPro, history = [0, 10
     );
 };
 
-export default StrategyCard;
+export default React.memo(StrategyCard);

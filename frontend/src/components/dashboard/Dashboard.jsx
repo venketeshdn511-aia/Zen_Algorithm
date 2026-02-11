@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import StatCard from './StatCard';
 import StrategyCard from './StrategyCard';
 import AIBrain from '../ai/AIBrain';
@@ -7,16 +7,17 @@ import { ArrowUpRight, TrendingUp, Cpu, Globe } from 'lucide-react';
 import { API_BASE_URL } from '../../utils/apiConfig';
 
 const Dashboard = ({ onOpenBlueprint, tradingMode }) => {
-    const [liveEquity, setLiveEquity] = React.useState(0);
-    const [ping, setPing] = React.useState(0);
-    const [pnlPct, setPnlPct] = React.useState(0);
-    const [lastUpdate, setLastUpdate] = React.useState('Just Now');
-    const [equityCurve, setEquityCurve] = React.useState([]);
-    const [recentTrades, setRecentTrades] = React.useState([]);
-    const [strategies, setStrategies] = React.useState([]);
-    const [isMasterLive, setIsMasterLive] = React.useState(true);
+    const [liveEquity, setLiveEquity] = useState(0);
+    const [ping, setPing] = useState(0);
+    const [pnlPct, setPnlPct] = useState(0);
+    const [lastUpdate, setLastUpdate] = useState('Just Now');
+    const [equityCurve, setEquityCurve] = useState([]);
+    const [recentTrades, setRecentTrades] = useState([]);
+    const [strategies, setStrategies] = useState([]);
+    const [isMasterLive, setIsMasterLive] = useState(true);
+    const prevStateRef = useRef({});
 
-    const handleToggleStatus = async (id, name) => {
+    const handleToggleStatus = useCallback(async (id, name) => {
         try {
             await fetch(`${API_BASE_URL}/api/strategy/toggle`, {
                 method: 'POST',
@@ -26,9 +27,9 @@ const Dashboard = ({ onOpenBlueprint, tradingMode }) => {
         } catch (err) {
             console.error("Failed to toggle strategy:", err);
         }
-    };
+    }, []);
 
-    React.useEffect(() => {
+    useEffect(() => {
         const fetchData = async () => {
             const start = performance.now();
             try {
@@ -37,24 +38,28 @@ const Dashboard = ({ onOpenBlueprint, tradingMode }) => {
                 const end = performance.now();
 
                 setPing(Math.round(end - start));
-                if (data.total_capital !== undefined) {
+
+                // Shallow compare before setting states to prevent unnecessary re-renders
+                if (data.total_capital !== undefined && data.total_capital !== prevStateRef.current.total_capital) {
                     setLiveEquity(data.total_capital);
                 }
-                if (data.total_pnl_pct !== undefined) {
+                if (data.total_pnl_pct !== undefined && data.total_pnl_pct !== prevStateRef.current.total_pnl_pct) {
                     setPnlPct(data.total_pnl_pct);
                 }
-                if (data.equity_curve) {
-                    setEquityCurve(data.equity_curve);
+                if (JSON.stringify(data.equity_curve) !== JSON.stringify(prevStateRef.current.equity_curve)) {
+                    setEquityCurve(data.equity_curve || []);
                 }
-                if (data.recent_trades) {
-                    setRecentTrades(data.recent_trades);
+                if (JSON.stringify(data.recent_trades) !== JSON.stringify(prevStateRef.current.recent_trades)) {
+                    setRecentTrades(data.recent_trades || []);
                 }
-                if (data.strategies) {
-                    setStrategies(data.strategies);
+                if (JSON.stringify(data.strategies) !== JSON.stringify(prevStateRef.current.strategies)) {
+                    setStrategies(data.strategies || []);
                 }
-                if (data.running !== undefined) {
+                if (data.running !== undefined && data.running !== prevStateRef.current.running) {
                     setIsMasterLive(data.running);
                 }
+
+                prevStateRef.current = data;
                 setLastUpdate(new Date().toLocaleTimeString());
             } catch (err) {
                 console.error("Dashboard sync error:", err);
@@ -66,8 +71,8 @@ const Dashboard = ({ onOpenBlueprint, tradingMode }) => {
         return () => clearInterval(interval);
     }, [tradingMode]);
 
-    // Generate dynamic SVG path for the hero chart
-    const generatePathData = (data) => {
+    const pathData = useMemo(() => {
+        const data = equityCurve;
         if (!data || data.length < 2) return "M0,250 L1000,250";
         const minY = Math.min(...data.map(d => d.y));
         const maxY = Math.max(...data.map(d => d.y));
@@ -78,9 +83,7 @@ const Dashboard = ({ onOpenBlueprint, tradingMode }) => {
             const y = 250 - ((d.y - minY) / range) * 200; // Standardize to 200px height range
             return `${i === 0 ? 'M' : 'L'}${x},${y} `;
         }).join(' ');
-    };
-
-    const pathData = generatePathData(equityCurve);
+    }, [equityCurve]);
 
     return (
         <div className="space-y-16 md:space-y-32 pb-32 md:pb-64">

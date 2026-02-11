@@ -5,6 +5,7 @@ import Strategies from './components/dashboard/Strategies';
 import Performance from './components/dashboard/Performance';
 import Settings from './components/dashboard/Settings';
 import StrategyReport from './components/dashboard/StrategyReport';
+import Login from './components/Login';
 import { motion, AnimatePresence } from 'framer-motion';
 
 function App() {
@@ -13,6 +14,9 @@ function App() {
   const [isDarkMode, setIsDarkMode] = useState(true);
   // Selected strategy for deep-dive report
   const [selectedStrategy, setSelectedStrategy] = useState(null);
+
+  // Auth State
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
@@ -23,8 +27,13 @@ function App() {
     setSelectedStrategy(data);
   };
 
+  if (!isLoggedIn) {
+    return <Login onLogin={() => setIsLoggedIn(true)} />;
+  }
+
   return (
     <div className="min-h-screen w-full bg-[var(--bg-color)] text-[var(--text-color)] flex flex-col selection:bg-[#007aff]/30 transition-colors duration-500">
+
 
       {/* Floating Island Navigation */}
       <TopBar
