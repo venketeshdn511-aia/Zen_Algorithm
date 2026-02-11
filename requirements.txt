@@ -11,4 +11,4 @@ pk-neo-api-client
 pyotp==2.9.0
 pytz==2023.3.post1
 fpdf2==2.7.7
-websocket-client==1.7.0
+websocket-client==1.6.1
