@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Filter, Play, Pause, ChevronDown, Binary, Zap, RefreshCw } from 'lucide-react';
 import StrategyCard from './StrategyCard';
+import { API_BASE_URL } from '../../utils/apiConfig';
 
 const Strategies = ({ onOpenBlueprint, tradingMode }) => {
     const [searchQuery, setSearchQuery] = useState('');
@@ -14,7 +15,7 @@ const Strategies = ({ onOpenBlueprint, tradingMode }) => {
     const fetchData = React.useCallback(async () => {
         setIsSyncing(true);
         try {
-            const response = await fetch(`/api/stats?mode=${tradingMode}`);
+            const response = await fetch(`${API_BASE_URL}/api/stats?mode=${tradingMode}`);
             const data = await response.json();
 
             if (data.strategies) {
@@ -63,7 +64,7 @@ const Strategies = ({ onOpenBlueprint, tradingMode }) => {
 
     const toggleStrategyStatus = async (id, name) => {
         try {
-            await fetch('/api/strategy/toggle', {
+            await fetch(`${API_BASE_URL}/api/strategy/toggle`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ strategy: name })
@@ -77,7 +78,7 @@ const Strategies = ({ onOpenBlueprint, tradingMode }) => {
     const handleMasterToggle = async () => {
         const targetState = !isLiveBotActive;
         try {
-            const endpoint = targetState ? '/api/start' : '/api/stop';
+            const endpoint = targetState ? `${API_BASE_URL}/api/start` : `${API_BASE_URL}/api/stop`;
             await fetch(endpoint);
             fetchData(); // Sync with real backend state
         } catch (err) {

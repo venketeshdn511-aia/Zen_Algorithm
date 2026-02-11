@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { API_BASE_URL } from '../../utils/apiConfig';
 
 const AIBrain = () => {
     const [insights, setInsights] = React.useState([]);
@@ -8,7 +9,7 @@ const AIBrain = () => {
     React.useEffect(() => {
         const fetchInsights = async () => {
             try {
-                const res = await fetch('/api/brain');
+                const res = await fetch(`${API_BASE_URL}/api/brain`);
                 const data = await res.json();
 
                 if (data.insights && Object.keys(data.insights).length > 0) {

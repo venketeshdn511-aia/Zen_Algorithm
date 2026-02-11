@@ -4,6 +4,7 @@ import StrategyCard from './StrategyCard';
 import AIBrain from '../ai/AIBrain';
 import { motion } from 'framer-motion';
 import { ArrowUpRight, TrendingUp, Cpu, Globe } from 'lucide-react';
+import { API_BASE_URL } from '../../utils/apiConfig';
 
 const Dashboard = ({ onOpenBlueprint, tradingMode }) => {
     const [liveEquity, setLiveEquity] = React.useState(0);
@@ -17,7 +18,7 @@ const Dashboard = ({ onOpenBlueprint, tradingMode }) => {
 
     const handleToggleStatus = async (id, name) => {
         try {
-            await fetch('/api/strategy/toggle', {
+            await fetch(`${API_BASE_URL}/api/strategy/toggle`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ strategy: name })
@@ -31,7 +32,7 @@ const Dashboard = ({ onOpenBlueprint, tradingMode }) => {
         const fetchData = async () => {
             const start = performance.now();
             try {
-                const response = await fetch(`/api/stats?mode=${tradingMode}`);
+                const response = await fetch(`${API_BASE_URL}/api/stats?mode=${tradingMode}`);
                 const data = await response.json();
                 const end = performance.now();
 
@@ -75,7 +76,7 @@ const Dashboard = ({ onOpenBlueprint, tradingMode }) => {
         return data.map((d, i) => {
             const x = (i / (data.length - 1)) * 1000;
             const y = 250 - ((d.y - minY) / range) * 200; // Standardize to 200px height range
-            return `${i === 0 ? 'M' : 'L'}${x},${y}`;
+            return `${i === 0 ? 'M' : 'L'}${x},${y} `;
         }).join(' ');
     };
 
@@ -274,9 +275,9 @@ const Dashboard = ({ onOpenBlueprint, tradingMode }) => {
                             isPro={idx % 2 === 0} // visual placeholder logic for now
                             history={s.trades || []}
                             metrics={{
-                                winRate: `${s.win_rate || 0}%`,
+                                winRate: `${s.win_rate || 0}% `,
                                 profitFactor: (s.wins / (s.losses || 1) * 1.5).toFixed(2),
-                                maxDrawdown: s.pnl_pct < 0 ? `${Math.abs(s.pnl_pct).toFixed(1)}%` : '0.0%',
+                                maxDrawdown: s.pnl_pct < 0 ? `${Math.abs(s.pnl_pct).toFixed(1)}% ` : '0.0%',
                                 totalTrades: ((s.wins || 0) + (s.losses || 0)).toString()
                             }}
                             onOpenBlueprint={onOpenBlueprint}
@@ -305,7 +306,7 @@ const Dashboard = ({ onOpenBlueprint, tradingMode }) => {
                     <Cpu size={64} className="text-[#007aff] relative" />
                     <h4 className="text-2xl font-bold tracking-tight text-[var(--text-color)]">Brain Status: Learning</h4>
                     <div className="text-[13px] font-mono text-[var(--text-muted)] line-clamp-6 bg-[var(--card-bg)] p-4 rounded-xl border border-[var(--border-color)]">
-                        {`{ "epoch": 104, "loss": 0.024, "regime": "expanding_volatility", "sentiment": 0.62, "last_action": "REWEIGHT_BANKS" }`}
+                        {`{ "epoch": 104, "loss": 0.024, "regime": "expanding_volatility", "sentiment": 0.62, "last_action": "REWEIGHT_BANKS" } `}
                     </div>
                 </div>
             </section>

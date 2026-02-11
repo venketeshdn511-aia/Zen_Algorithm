@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, Award, AlertTriangle, Binary, RefreshCw, Edit3, X, GripVertical, Check } from 'lucide-react';
 import { AnimatePresence, Reorder } from 'framer-motion';
+import { API_BASE_URL } from '../../utils/apiConfig';
 
 const Performance = ({ tradingMode }) => {
     const [timeframe, setTimeframe] = React.useState('ALL');
@@ -46,7 +47,7 @@ const Performance = ({ tradingMode }) => {
             if (showEditModal || isSaving) return; // PAUSE SYNC: Prevents drag jank or state reversion
             try {
                 setIsSyncing(true);
-                const statsRes = await fetch(`/api/stats?mode=${tradingMode}`);
+                const statsRes = await fetch(`${API_BASE_URL}/api/stats?mode=${tradingMode}`);
                 const statsData = await statsRes.json();
 
                 if (statsData.total_capital !== undefined) {
@@ -133,7 +134,7 @@ const Performance = ({ tradingMode }) => {
 
             if (isValid && original && original.capital !== s.capital) {
                 try {
-                    await fetch('/api/strategy/allocation', {
+                    await fetch(`${API_BASE_URL}/api/strategy/allocation`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ strategy: s.name, capital: s.capital })
