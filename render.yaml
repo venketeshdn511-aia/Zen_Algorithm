@@ -1,9 +1,9 @@
 services:
-  # Python Backend
+  # Unified Backend + Frontend
   - type: web
-    name: kotak-algo-bot-api
+    name: kotak-algo-bot
     env: python
-    buildCommand: pip install -r requirements.txt && pip install --no-deps pk-neo-api-client
+    buildCommand: cd frontend && npm install && npm run build && cd .. && pip install -r requirements.txt && pip install --no-deps pk-neo-api-client
     startCommand: gunicorn main:application
     envVars:
       - key: PYTHON_VERSION
@@ -25,21 +25,3 @@ services:
         sync: false
       - key: KOTAK_ACCESS_TOKEN
         sync: false
-        
-  # React Frontend
-  - type: static
-    name: kotak-algo-bot-ui
-    env: static
-    root: frontend
-    buildCommand: npm install && npm run build
-    staticPublishPath: dist
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    envVars:
-      - key: VITE_API_URL
-        fromService:
-          type: web
-          name: kotak-algo-bot-api
-          envVar: RENDER_EXTERNAL_URL

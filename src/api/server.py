@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request, send_file
+from flask import Flask, render_template, jsonify, request, send_file, send_from_directory
 from flask_cors import CORS
 from fpdf import FPDF
 import pandas as pd
@@ -9,7 +9,11 @@ from datetime import datetime, timedelta
 import pytz
 import json
 
-app = Flask(__name__, template_folder='../../templates', static_folder='../../static')
+# Configure Flask to serve React build
+app = Flask(__name__, 
+            template_folder='../../templates', 
+            static_folder='../../frontend/dist',
+            static_url_path='')
 CORS(app) # Enable CORS for all routes
 engine_ref = None
 
@@ -41,13 +45,9 @@ def get_engine():
     return engine_ref
 
 @app.route('/')
-def api_root():
-    return jsonify({
-        'status': 'success',
-        'message': 'Kotak Algo Bot API is Active',
-        'version': '2.0.0',
-        'frontend': 'http://localhost:5173'
-    })
+def serve_frontend():
+    """Serve the React frontend"""
+    return send_from_directory(app.static_folder, 'index.html')
 
 @app.route('/api/stats')
 def get_stats():
@@ -392,6 +392,15 @@ def toggle_strategy():
             })
         return jsonify({"error": "Strategy not found"}), 404
     return jsonify({"error": "Invalid parameters"}), 400
+
+# Catch-all route for React Router (must be last)
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def catch_all(path):
+    """Serve React app for all non-API routes"""
+    if path.startswith('api/'):
+        return jsonify({"error": "API endpoint not found"}), 404
+    return send_from_directory(app.static_folder, 'index.html')
 
 if __name__ == '__main__':
     # For testing purposes only
