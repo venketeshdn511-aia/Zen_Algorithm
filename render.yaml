@@ -3,7 +3,7 @@ services:
   - type: web
     name: kotak-algo-bot
     env: python
-    buildCommand: pip install -r requirements.txt && pip install --no-deps pk-neo-api-client && cd frontend && npm install && npm run build
+    buildCommand: pip install -r requirements.txt && pip install --no-deps pk-neo-api-client
     startCommand: gunicorn main:application
     envVars:
       - key: PYTHON_VERSION
