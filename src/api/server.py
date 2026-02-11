@@ -53,16 +53,26 @@ def init_app(engine_instance):
 
 # Helper to access engine safely
 def get_engine():
-    if engine_ref is None:
-        raise RuntimeError("Engine not initialized in API")
+    """Returns engine if ready, None otherwise"""
     return engine_ref
 
 
 
 @app.route('/api/stats')
 def get_stats():
+    engine = get_engine()
+    if engine is None:
+        return jsonify({
+            'status': 'initializing',
+            'total_capital': 0,
+            'total_pnl_pct': 0,
+            'equity_curve': [],
+            'recent_trades': [],
+            'strategies': [],
+            'running': False
+        })
     mode = request.args.get('mode', 'PAPER').upper()
-    return jsonify(get_engine().get_portfolio_stats(mode=mode))
+    return jsonify(engine.get_portfolio_stats(mode=mode))
 
 @app.route('/api/brain')
 def get_brain_data():

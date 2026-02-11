@@ -26,19 +26,32 @@ logging.basicConfig(
 print("[MAIN] Starting Multi-Strategy Trading Engine (Refactored)...")
 print(" VERIFYING STDOUT: Logs should appear here.", flush=True)
 
-# Initialize Engine
-try:
-    engine = TradingEngine()
-    
-    # Initialize API
-    init_app(engine)
-    
-    # Expose app for Gunicorn
-    application = app 
-except Exception as e:
-    print(f" Critical Startup Error: {e}")
-    traceback.print_exc()
-    sys.exit(1)
+
+# Global engine reference (will be initialized in background)
+engine = None
+engine_ready = False
+
+def initialize_engine():
+    """Initialize TradingEngine in background to avoid blocking Flask startup"""
+    global engine, engine_ready
+    try:
+        print("[INIT] Starting TradingEngine initialization in background...", flush=True)
+        engine = TradingEngine()
+        init_app(engine)
+        engine_ready = True
+        print("[INIT] TradingEngine ready!", flush=True)
+    except Exception as e:
+        print(f"[INIT] Critical Startup Error: {e}", flush=True)
+        traceback.print_exc()
+        engine_ready = False
+
+# Start engine initialization in background thread
+print("[MAIN] Starting background engine initialization...", flush=True)
+init_thread = threading.Thread(target=initialize_engine, daemon=True, name='engine_init')
+init_thread.start()
+
+# Expose app for Gunicorn immediately (even before engine is ready)
+application = app
 
 def signal_handler(sig, frame):
     print(f"\n Signal {sig} received. Shutting down...")
@@ -53,6 +66,14 @@ signal.signal(signal.SIGTERM, signal_handler)
 
 def main():
     try:
+        # Wait for engine to be ready
+        print("[MAIN] Waiting for engine initialization...", flush=True)
+        while not engine_ready:
+            import time
+            time.sleep(1)
+        
+        print("[MAIN] Engine ready, starting trading loop...", flush=True)
+        
         # If running directly, start thread and server
         if not engine.running:
             print(" [DEBUG] Engine start forced for verification...", flush=True)
