@@ -9,10 +9,23 @@ from datetime import datetime, timedelta
 import pytz
 import json
 
+# Resolve paths relative to this file (src/api/server.py)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Go up two levels to root, then into frontend/dist
+STATIC_DIR = os.path.join(BASE_DIR, '../../frontend/dist')
+TEMPLATE_DIR = os.path.join(BASE_DIR, '../../templates')
+
+print(f" [DEBUG] Server starting...")
+print(f" [DEBUG] BASE_DIR: {BASE_DIR}")
+print(f" [DEBUG] STATIC_DIR: {os.path.abspath(STATIC_DIR)}")
+print(f" [DEBUG] STATIC_DIR Exists? {os.path.exists(STATIC_DIR)}")
+if os.path.exists(STATIC_DIR):
+    print(f" [DEBUG] Files in STATIC_DIR: {os.listdir(STATIC_DIR)}")
+
 # Configure Flask to serve React build
 app = Flask(__name__, 
-            template_folder='../../templates', 
-            static_folder='../../frontend/dist',
+            template_folder=TEMPLATE_DIR, 
+            static_folder=STATIC_DIR,
             static_url_path='')
 CORS(app) # Enable CORS for all routes
 engine_ref = None
