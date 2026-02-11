@@ -12,3 +12,4 @@ PyJWT==2.6.0
 pytz==2023.3.post1
 fpdf2==2.7.7
 websocket-client==1.6.1
+neo_api_client

@@ -15,6 +15,7 @@ from fyers_apiv3 import fyersModel
 from src.core.base_strategy import INITIAL_CAPITAL, LOT_SIZE
 # from src.brokers.fyers_paper_broker import FyersPaperBroker # Removed
 from src.brokers.kotak_paper_broker import KotakPaperBroker
+from src.brokers.kotak_broker import KotakBroker # <--- Added Real Broker
 from src.brokers.fyers_broker import FyersBroker
 from src.regime_detector import MarketRegimeGovernor
 from src.strategies.adapters_basic import (
@@ -38,9 +39,9 @@ from src.strategies.amd_setup_strategy import AMDSetupStrategy
 
 # Optional Imports (Graceful Fallback)
 try:
-    # from src.websocket.fyers_ws_handler import FyersWebSocketHandler, get_ws_handler
-    # WS_AVAILABLE = True
-    WS_AVAILABLE = False
+    from src.websocket.fyers_ws_handler import FyersWebSocketHandler, get_ws_handler
+    WS_AVAILABLE = True
+    # WS_AVAILABLE = False
 except ImportError:
     WS_AVAILABLE = False
     print("Warning: WebSocket handler not available")
@@ -64,8 +65,10 @@ DATA_FILE = 'strategy_state.json'
 class TradingEngine:
     def __init__(self):
         self.lock = threading.Lock()
-        # Initialize Kotak Paper Broker (Safe Wrapper)
-        self.broker = KotakPaperBroker()
+        # Initialize Kotak Broker (REAL TRADING)
+        # self.broker = KotakPaperBroker()
+        self.broker = KotakBroker()
+        print(" [WARNING] REAL TRADING MODE ACTIVE ")
         
         self.strategies = [
             FailedAuctionStrategy(broker=self.broker),
@@ -128,12 +131,24 @@ class TradingEngine:
     def start_websocket(self):
         if self.use_websocket:
             try:
-                self.ws_handler = get_ws_handler(
-                    symbols=["NSE:NIFTY50-INDEX"],
-                    on_bar_complete=self._on_bar_complete,
-                    on_tick=self.check_fast_exits,
-                    logger=None
-                )
+                # Need valid access token for Fyers WS
+                access_token = None
+                if self.history_broker and self.history_broker.access_token:
+                    access_token = self.history_broker.access_token
+                
+                if access_token:
+                    self.ws_handler = get_ws_handler(
+                        access_token=access_token,
+                        symbols=["NSE:NIFTY50-INDEX"],
+                        on_bar_complete=self._on_bar_complete,
+                        on_tick=self.check_fast_exits,
+                        logger=None
+                    )
+                    self.ws_handler.start()
+                    print("[WS] WebSocket started with Fast Exit Trigger")
+                else:
+                    print("[WS] Skipped: No Fyers Access Token availability")
+                    self.use_websocket = False
                 self.ws_handler.start()
                 print("[WS] WebSocket started with Fast Exit Trigger")
             except Exception as e:
@@ -144,6 +159,35 @@ class TradingEngine:
         if self.ws_handler:
             self.ws_handler.stop()
             print(" WebSocket stopped")
+
+    def update_live_positions(self):
+        """
+        Active polling for open positions.
+        Fetches latest LTP from Broker and checks for Exits.
+        """
+        if not self.running: return
+
+        # Loop through strategies
+        for strategy in self.strategies:
+            if strategy.position:
+                symbol = strategy.position.get('symbol')
+                if not symbol: continue
+                
+                # Fetch live price via REST (Active Polling)
+                ltp = self.broker.get_current_price(symbol)
+                
+                if ltp and ltp > 0:
+                    # Update internal state
+                    strategy.position['ltp'] = ltp
+                    
+                    # Check for Exits (Target / SL)
+                    # Re-use the existing logic
+                    self.check_fast_exits(symbol, ltp)
+                    
+                    # Update Trailing Stops if applicable
+                    if hasattr(strategy, 'update_trailing_stop') and self.df is not None:
+                        strategy.update_trailing_stop(self.df)
+
 
     def _on_bar_complete(self, symbol, interval, bar):
         print(f" Bar Complete: {symbol} {interval}m - Close: {bar['close']}")
@@ -196,7 +240,7 @@ class TradingEngine:
             except: pass
             
         if data:
-            self.running = data.get('running', False)
+            self.running = data.get('running', True) # Default to True for easier startup
             self.last_reset_date = data.get('last_reset_date')
             self.strategy_overrides = data.get('strategy_overrides', {})
             if db_handler and db_handler.connected:
@@ -412,7 +456,10 @@ class TradingEngine:
                 market_time = now.hour * 100 + now.minute
                 
                 # 1. SHUTDOWN CHECK (15:15 PM)
-                if market_time >= 1515:
+                # Allow dry run after market if configured
+                allow_after_market = os.getenv('ALLOW_AFTER_MARKET', '0') == '1'
+                
+                if market_time >= 1515 and not allow_after_market:
                     print(f" [{now.strftime('%H:%M:%S')}] Market Closing Shift (15:15). Shutting down.")
                     self.emergency_close_all()
                     self.running = False
@@ -432,6 +479,8 @@ class TradingEngine:
                             continue
 
                         self.run_strategies()
+                        self.update_live_positions()
+                        self.update_live_positions() # <--- Added Active Monitoring
                         self.save_state()
                     else:
                         if loop_count % 8 == 0: print(f" [{now.strftime('%H:%M:%S')}] Data fetch failed")

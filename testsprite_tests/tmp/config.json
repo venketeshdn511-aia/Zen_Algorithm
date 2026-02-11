@@ -1,7 +1,15 @@
 {
   "status": "commited",
-  "type": "backend",
+  "type": "frontend",
   "scope": "codebase",
-  "localEndpoint": "http://localhost:5000",
-  "backendAuthType": "public"
+  "localEndpoint": "http://localhost:8080",
+  "executionArgs": {
+    "projectName": "kotak_algo_bot",
+    "projectPath": "c:\\Users\\Vinay\\.gemini\\antigravity\\scratch\\kotak_algo_bot",
+    "testIds": [],
+    "additionalInstruction": "Verify that the \"Global safety lock\" is NOT present and that the \"Connected\" status is visible in the TopBar. Ensure no blank pages are encountered.",
+    "envs": {
+      "API_KEY": "sk-user-viyks1wLndf2ZbAmXCgl0bcZe_1hTW5-o9_tufksRKubEOVuM2mJxv7zqpVLjijHlnV0XrTC6Vw6aA_LwqHpur5Iy5gkESppoY10KDAXi97JZW9-CSfVvd1t3cRyQ3tABn4"
+    }
+  }
 }

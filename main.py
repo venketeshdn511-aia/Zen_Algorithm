@@ -24,6 +24,7 @@ logging.basicConfig(
 )
 
 print("[MAIN] Starting Multi-Strategy Trading Engine (Refactored)...")
+print(" VERIFYING STDOUT: Logs should appear here.", flush=True)
 
 # Initialize Engine
 try:
@@ -53,6 +54,10 @@ signal.signal(signal.SIGTERM, signal_handler)
 def main():
     try:
         # If running directly, start thread and server
+        if not engine.running:
+            print(" [DEBUG] Engine start forced for verification...", flush=True)
+            engine.running = True
+            
         if engine.running: 
             print(" Auto-resuming trading loop...")
             thread = threading.Thread(target=engine.run, daemon=True, name='trading_loop')

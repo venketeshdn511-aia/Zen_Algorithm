@@ -1,8 +1,27 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { LayoutDashboard, Settings, PieChart, Activity, Zap, ShieldCheck, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+
+import { API_BASE_URL } from '../../utils/apiConfig';
+
 export const TopBar = ({ tradingMode, onToggleMode, activeTab, setActiveTab }) => {
+    const [isConnected, setIsConnected] = useState(false);
+
+    useEffect(() => {
+        const checkConnection = async () => {
+            try {
+                const res = await fetch(`${API_BASE_URL}/debug`);
+                if (res.ok) setIsConnected(true);
+                else setIsConnected(false);
+            } catch (e) {
+                setIsConnected(false);
+            }
+        };
+        checkConnection();
+        const interval = setInterval(checkConnection, 5000);
+        return () => clearInterval(interval);
+    }, []);
     const navItems = [
         { label: 'Overview', id: 'Dashboard' },
         { label: 'Strategies', id: 'Strategies' },
@@ -35,7 +54,16 @@ export const TopBar = ({ tradingMode, onToggleMode, activeTab, setActiveTab }) =
                     </div>
                 </div>
 
+
+
                 <div className="flex items-center gap-4">
+                    {/* Connection Status for TestSprite */}
+                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${isConnected ? 'bg-[#34c759]/10 border-[#34c759]/20' : 'bg-[#ff3b30]/10 border-[#ff3b30]/20'}`}>
+                        <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-[#34c759] animate-pulse' : 'bg-[#ff3b30]'}`} />
+                        <span className={`text-[10px] font-bold uppercase tracking-wider ${isConnected ? 'text-[#34c759]' : 'text-[#ff3b30]'}`}>
+                            {isConnected ? 'Connected' : 'Disconnected'}
+                        </span>
+                    </div>
                     {/* Mode Switcher */}
                     <div className="flex bg-[var(--bg-color)] p-1 rounded-xl border border-[var(--border-color)] overflow-hidden">
                         <button
@@ -58,7 +86,7 @@ export const TopBar = ({ tradingMode, onToggleMode, activeTab, setActiveTab }) =
                     <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 border border-[var(--border-color)] flex items-center justify-center text-[8px] md:text-[10px] font-bold text-white uppercase tracking-tighter">V</div>
                 </div>
             </div>
-        </nav>
+        </nav >
     );
 };
 

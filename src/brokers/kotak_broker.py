@@ -20,6 +20,7 @@ class KotakBroker:
         
         # Load Credentials
         self.CONSUMER_KEY = os.getenv("KOTAK_CONSUMER_KEY")
+        self.CONSUMER_SECRET = os.getenv("KOTAK_CONSUMER_SECRET")
         self.MOBILE_NUMBER = os.getenv("KOTAK_MOBILE_NUMBER")
         self.PASSWORD = os.getenv("KOTAK_PASSWORD")
         self.MPIN = os.getenv("KOTAK_MPIN")

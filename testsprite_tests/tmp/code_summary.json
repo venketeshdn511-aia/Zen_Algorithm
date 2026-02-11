@@ -1,0 +1,67 @@
+{
+    "tech_stack": [
+        "Python",
+        "Flask",
+        "React",
+        "Vite",
+        "TailwindCSS",
+        "MongoDB",
+        "Fyers API",
+        "Kotak Neo API"
+    ],
+    "features": [
+        {
+            "name": "Trading Engine",
+            "description": "Core logic for executing trading strategies, managing positions, and interfacing with brokers.",
+            "files": [
+                "src/core/trading_engine.py",
+                "main.py"
+            ]
+        },
+        {
+            "name": "API Server",
+            "description": "Flask backend serving the dashboard API and handling requests.",
+            "files": [
+                "src/api/server.py"
+            ]
+        },
+        {
+            "name": "Frontend Dashboard",
+            "description": "Main UI for monitoring strategies, PnL, and system status.",
+            "files": [
+                "frontend/src/components/dashboard/Dashboard.jsx",
+                "frontend/src/App.jsx",
+                "frontend/src/main.jsx"
+            ]
+        },
+        {
+            "name": "Strategy Management",
+            "description": "card component to display strategy details and toggle status.",
+            "files": [
+                "frontend/src/components/dashboard/StrategyCard.jsx",
+                "src/core/base_strategy.py"
+            ]
+        },
+        {
+            "name": "Navigation & Layout",
+            "description": "Top bar and dock navigation, including connection status indicator.",
+            "files": [
+                "frontend/src/components/layout/Navigation.jsx"
+            ]
+        },
+        {
+            "name": "Error Handling",
+            "description": "Frontend Error Boundary to prevent crashes.",
+            "files": [
+                "frontend/src/components/common/ErrorBoundary.jsx"
+            ]
+        },
+        {
+            "name": "Market Regime",
+            "description": "Logic to detect market conditions and adjust strategies.",
+            "files": [
+                "src/regime_detector.py"
+            ]
+        }
+    ]
+}

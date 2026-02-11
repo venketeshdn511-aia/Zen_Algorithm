@@ -85,19 +85,27 @@ const StrategyCard = ({ name, profit, profitPct, status, isPro, history = [0, 10
                                 <div className="grid grid-cols-4 gap-2 text-center">
                                     <div>
                                         <p className="text-[7px] text-[var(--text-muted)] uppercase font-bold">Entry</p>
-                                        <p className="text-[10px] font-black">{activeTrade.entry}</p>
+                                        <div className="text-[10px] font-black">
+                                            <AnimatedNumber value={parseFloat(activeTrade.entry)} precision={2} />
+                                        </div>
                                     </div>
                                     <div>
                                         <p className="text-[7px] text-[var(--text-muted)] uppercase font-bold text-[var(--apple-red)]">SL</p>
-                                        <p className="text-[10px] font-black text-[var(--apple-red)]">{activeTrade.sl}</p>
+                                        <div className="text-[10px] font-black text-[var(--apple-red)]">
+                                            <AnimatedNumber value={parseFloat(activeTrade.sl)} precision={2} />
+                                        </div>
                                     </div>
                                     <div>
                                         <p className="text-[7px] text-[var(--text-muted)] uppercase font-bold text-[var(--apple-green)]">TGT</p>
-                                        <p className="text-[10px] font-black text-[var(--apple-green)]">{activeTrade.target}</p>
+                                        <div className="text-[10px] font-black text-[var(--apple-green)]">
+                                            <AnimatedNumber value={parseFloat(activeTrade.target)} precision={2} />
+                                        </div>
                                     </div>
                                     <div className="bg-[var(--apple-blue)]/10 rounded-lg py-1">
                                         <p className="text-[7px] text-[var(--apple-blue)] uppercase font-bold pulse">LTP</p>
-                                        <p className="text-[10px] font-black text-[var(--apple-blue)]">{activeTrade.ltp}</p>
+                                        <div className="text-[10px] font-black text-[var(--apple-blue)]">
+                                            <AnimatedNumber value={parseFloat(activeTrade.ltp)} precision={2} />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -186,6 +194,8 @@ const StrategyCard = ({ name, profit, profitPct, status, isPro, history = [0, 10
                                     {isPaused ? <Play size={12} fill="currentColor" /> : <Pause size={12} fill="currentColor" />}
                                     {isPaused ? 'Continue Bot' : 'Pause Engine'}
                                 </button>
+                                {/* Spacing div for extraction safety */}
+                                <div className="w-1"></div>
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();

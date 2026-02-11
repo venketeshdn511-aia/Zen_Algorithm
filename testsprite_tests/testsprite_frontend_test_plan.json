@@ -1,0 +1,373 @@
+[
+  {
+    "id": "TC001",
+    "title": "Concurrent Execution of Multiple Strategies",
+    "description": "Verify the system supports simultaneous execution of multiple independent trading strategies without performance degradation or interference.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Configure and start the trading engine with multiple different trading strategies enabled."
+      },
+      {
+        "type": "assertion",
+        "description": "Ensure all strategies execute trades independently and concurrently without errors."
+      },
+      {
+        "type": "assertion",
+        "description": "Monitor system resource usage to confirm no performance degradation during concurrent execution."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that all position management is maintained correctly per strategy without crossover."
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "Seamless Switching Between Paper Trading and Real Trading Modes",
+    "description": "Ensure users can switch between paper trading and real trading modes without data loss or operational errors.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Start the trading engine in paper trading mode and run a strategy."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm trades are simulated and no real orders are sent to broker."
+      },
+      {
+        "type": "action",
+        "description": "Switch the trading engine to real trading mode during live execution."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that live orders are sent correctly to the broker with no data loss."
+      },
+      {
+        "type": "action",
+        "description": "Switch back to paper trading mode."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm continued correct operation and data integrity on mode toggle."
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "Live Price Data Updates via WebSocket Integration",
+    "description": "Test that the system receives and caches live price data accurately and timely from Kotak Neo API V2 using WebSocket.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Connect trading engine to Kotak Neo API V2 WebSocket feed."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that live price data is continuously received without interruptions."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm that received data is cached properly and accessible to strategies."
+      },
+      {
+        "type": "assertion",
+        "description": "Simulate network delay and verify latency monitoring reflects accurate timings."
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "AI Market Regime Detection Accuracy",
+    "description": "Validate AI Brain's ability to detect market regimes (Trending vs Sideways) correctly based on live and historical data.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Feed historical market data with known regimes into the AI Brain module."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the AI Brain correctly classifies the market regime."
+      },
+      {
+        "type": "action",
+        "description": "Provide live data simulating switching between trending and sideways markets."
+      },
+      {
+        "type": "assertion",
+        "description": "Ensure AI Brain dynamically updates regime detection in real-time accordingly."
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "AI Trade Signal Validation and Risk Assessment",
+    "description": "Assess AI Brain's effectiveness in validating trade signals and dynamically assessing risk to reduce false positives.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Generate a set of trade signals with known valid and invalid cases."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm AI Brain accepts valid trade signals and suppresses invalid ones."
+      },
+      {
+        "type": "action",
+        "description": "Evaluate AI risk assessment adjustments in response to varying market conditions."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that risk levels adapt dynamically and signals are filtered accordingly."
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Real-Time Dashboard Updates with Live PnL and Thinking Logs",
+    "description": "Check that the frontend dashboard updates live PnL figures and AI thinking logs correctly and in real-time without crashes.",
+    "category": "ui",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Execute strategies generating trade activity over a period."
+      },
+      {
+        "type": "assertion",
+        "description": "Observe dashboard PnL updates reflect latest trade results without latency."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify AI thinking logs update continuously in the UI as decisions occur."
+      },
+      {
+        "type": "action",
+        "description": "Trigger deliberate frontend errors to test error boundaries."
+      },
+      {
+        "type": "assertion",
+        "description": "Ensure error boundary prevents UI crashes and displays appropriate messages."
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Strategy Management UI Toggle Functionality",
+    "description": "Test the one-click toggling feature to enable or pause strategies from the UI and its immediate effect on the trading engine.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the strategy management UI."
+      },
+      {
+        "type": "action",
+        "description": "Click toggle button to pause an active strategy."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm strategy halts execution immediately in the trading engine."
+      },
+      {
+        "type": "action",
+        "description": "Click toggle button again to enable the paused strategy."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify strategy resumes execution without errors."
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Heatmap Visualization for Win/Loss Distributions",
+    "description": "Validate that heatmaps correctly visualize win and loss distributions over different times and price ranges in the dashboard.",
+    "category": "ui",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Run strategies to generate trade results with varying outcomes across different time periods and price ranges."
+      },
+      {
+        "type": "assertion",
+        "description": "Check heatmap displays correct aggregation of wins and losses corresponding to trade data."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify heatmap updates dynamically as new trade data arrives."
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Automated AI-Generated Daily and Weekly PDF Reports",
+    "description": "Ensure the system generates accurate and detailed PDF reports summarizing performance and strategy health daily and weekly.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Simulate execution data and trigger daily and weekly report generation."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify reports generate on schedule containing accurate trade summaries and analytics."
+      },
+      {
+        "type": "assertion",
+        "description": "Inspect reports for correct inclusion of AI-generated insights on strategy health and risk."
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Error Handling and Connection Status Indicators",
+    "description": "Test robustness of system error handling and verify connection status indicators reflect actual system connectivity states.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Simulate API disconnection or failures in broker integration and AI services."
+      },
+      {
+        "type": "assertion",
+        "description": "Check that the error handling system captures and logs errors gracefully without crashing."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the connection status indicators on the frontend reflect disconnected state promptly."
+      },
+      {
+        "type": "action",
+        "description": "Restore connections and verify indicators update to connected status."
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Telegram Trade Alert Notifications",
+    "description": "Validate that the system sends real-time trade alerts via Telegram in response to trade execution events.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Execute trades using the trading engine."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that trade alert messages are delivered promptly to the configured Telegram account."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm alert contents accurately reflect trade details (instrument, quantity, price, time)."
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Comprehensive Logging and Latency Monitoring",
+    "description": "Check that system logs all API interactions and monitors latency metrics effectively to demonstrate stable system health and broker connectivity.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Perform a series of API calls to Kotak Neo and AI Brain services during live trading."
+      },
+      {
+        "type": "assertion",
+        "description": "Inspect logs for accurate, timestamped records of requests and responses."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify latency metrics are recorded and updated in the monitoring dashboards."
+      },
+      {
+        "type": "action",
+        "description": "Introduce network latency and confirm monitoring reflects the increased response times."
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Strategy Creation and Selection via Backend",
+    "description": "Validate that users can create new strategies and select existing strategies through the backend/server API successfully.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send API requests to create new trading strategies on the backend."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify strategies are created with correct parameters and persisted in database."
+      },
+      {
+        "type": "action",
+        "description": "Request list of existing strategies."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm all created strategies are listed and selectable for execution."
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Frontend Dashboard Auto Connection on Server Start",
+    "description": "Ensure the frontend dashboard automatically connects and displays real-time data and AI thinking logs once the backend server and trading engine are started.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Start backend server and initiate trading engine."
+      },
+      {
+        "type": "assertion",
+        "description": "Open frontend dashboard and verify it connects automatically without needing manual input."
+      },
+      {
+        "type": "assertion",
+        "description": "Check real-time market data, PnL, and AI thinking logs are displayed on dashboard."
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Accuracy of Frontend Analytics Metrics Computation",
+    "description": "Verify that frontend computes performance analytics metrics (CAGR, Max Drawdown, Win Rate, Equity Curves) accurately based on real trading and paper trading data.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Run strategies generating three sets of controlled trade results with defined PnL profiles."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify each analytics metric is calculated correctly and matches expected manual calculations."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm updates occur in real-time as new trade results arrive."
+      }
+    ]
+  }
+]
