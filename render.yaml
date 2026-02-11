@@ -4,7 +4,7 @@ services:
     name: kotak-algo-bot
     env: python
     buildCommand: pip install -r requirements.txt && pip install --no-deps pk-neo-api-client
-    startCommand: gunicorn main:application
+    startCommand: gunicorn main:application --bind 0.0.0.0:10000 --timeout 120
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
