@@ -227,6 +227,9 @@ def debug_app():
 @app.route('/api/start')
 def start_trading():
     engine = get_engine()
+    if engine is None:
+        return jsonify({'status': 'initializing', 'message': 'Engine starting...'}), 503
+        
     if not engine.running:
         engine.running = True
         engine.save_state()
@@ -238,6 +241,9 @@ def start_trading():
 @app.route('/api/stop')
 def stop_trading():
     engine = get_engine()
+    if engine is None:
+        return jsonify({'status': 'initializing', 'message': 'Engine starting...'}), 503
+        
     print(f" STOP REQUESTED", flush=True)
     engine.running = False
     engine.save_state()
@@ -246,6 +252,9 @@ def stop_trading():
 @app.route('/api/force_close')
 def force_close():
     engine = get_engine()
+    if engine is None:
+         return jsonify({'status': 'initializing', 'message': 'Engine starting...'}), 503
+         
     engine.running = False
     engine.emergency_close_all()
     return jsonify({'status': 'emergency_stop_triggered', 'message': 'All positions closed.'})
@@ -253,14 +262,19 @@ def force_close():
 @app.route('/api/reset_hard')
 def reset_hard():
     try:
-        get_engine().reset_portfolio_state()
-        return jsonify({'status': 'success', 'message': 'Portfolio Hard Reset Successful'})
+        engine = get_engine()
+        if engine:
+            engine.reset_portfolio_state()
+            return jsonify({'status': 'success', 'message': 'Portfolio Hard Reset Successful'})
+        return jsonify({'status': 'initializing', 'message': 'Engine starting...'}), 503
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
 
 @app.route('/strategy/<path:strategy_name>')
 def strategy_detail(strategy_name):
     engine = get_engine()
+    if engine is None: return "Engine Initializing...", 503
+    
     decoded_name = requests.utils.unquote(strategy_name)
     strategy = next((s for s in engine.strategies if s.name == decoded_name), None)
     if not strategy: return "Strategy not found", 404
@@ -269,6 +283,9 @@ def strategy_detail(strategy_name):
 @app.route('/api/strategy/<strategy_name>')
 def get_strategy_details(strategy_name):
     engine = get_engine()
+    if engine is None:
+        return jsonify({'error': 'Engine Initializing'}), 503
+        
     decoded_name = requests.utils.unquote(strategy_name)
     strategy = next((s for s in engine.strategies if s.name == decoded_name), None)
     if not strategy: return jsonify({'error': 'Strategy not found'}), 404
@@ -326,11 +343,16 @@ def get_strategy_details(strategy_name):
 
 @app.route('/api/regime', methods=['GET'])
 def get_regime():
-    return jsonify(get_engine().governor.get_regime_status())
+    engine = get_engine()
+    if engine and hasattr(engine, 'governor'):
+        return jsonify(engine.governor.get_regime_status())
+    return jsonify({'status': 'initializing'}), 503
 
 @app.route('/api/regime/update', methods=['POST'])
 def update_regime_manual():
     engine = get_engine()
+    if engine is None: return jsonify({'error': 'Engine starting...'}), 503
+    
     data = request.json
     mode = data.get('mode')
     regime = data.get('regime')
@@ -344,6 +366,8 @@ def update_regime_manual():
 @app.route('/api/strategy/allocation', methods=['POST'])
 def strategy_allocation():
     engine = get_engine()
+    if engine is None: return jsonify({'error': 'Engine starting...'}), 503
+    
     data = request.json
     strategy_name = data.get('strategy')
     new_capital = data.get('capital')
@@ -422,6 +446,8 @@ def generate_report():
 @app.route('/api/strategy/toggle', methods=['POST'])
 def toggle_strategy():
     engine = get_engine()
+    if engine is None: return jsonify({'error': 'Engine starting...'}), 503
+    
     data = request.json
     strategy_name = data.get('strategy')
     

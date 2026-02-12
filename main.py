@@ -45,6 +45,11 @@ def initialize_engine():
         init_app(engine)
         engine_ready = True
         print(f"[INIT] TradingEngine ready! Total init: {_time.time()-t0:.1f}s", flush=True)
+        
+        # Start trading loop if engine is running (handled in bg now)
+        if engine.running:
+            print("[INIT] Starting trading loop thread...", flush=True)
+            threading.Thread(target=engine.run, daemon=True, name='trading_loop').start()
     except Exception as e:
         print(f"[INIT] Critical Startup Error: {e}", flush=True)
         traceback.print_exc()
@@ -71,24 +76,7 @@ signal.signal(signal.SIGTERM, signal_handler)
 
 def main():
     try:
-        # Wait for engine to be ready
-        print("[MAIN] Waiting for engine initialization...", flush=True)
-        while not engine_ready:
-            import time
-            time.sleep(1)
-        
-        print("[MAIN] Engine ready, starting trading loop...", flush=True)
-        
-        # If running directly, start thread and server
-        if not engine.running:
-            print(" [DEBUG] Engine start forced for verification...", flush=True)
-            engine.running = True
-            
-        if engine.running: 
-            print(" Auto-resuming trading loop...")
-            thread = threading.Thread(target=engine.run, daemon=True, name='trading_loop')
-            thread.start()
-            
+        # Start Flask immediately (Engine inits in background)
         port = int(os.environ.get("PORT", 8080))
         print(f" Dashboard available at http://localhost:{port}")
         
