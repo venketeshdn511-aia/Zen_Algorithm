@@ -9,16 +9,23 @@ import signal
 import traceback
 from datetime import datetime, timedelta
 import pandas as pd
-from fyers_apiv3 import fyersModel
 
 # Local Imports
 from src.core.base_strategy import INITIAL_CAPITAL, LOT_SIZE
 from src.brokers.kotak_paper_broker import KotakPaperBroker
 from src.brokers.kotak_broker import KotakBroker
-from src.brokers.fyers_broker import FyersBroker
 from src.regime_detector import MarketRegimeGovernor
 from src.strategies.failed_auction_strategy import FailedAuctionStrategy
 from src.strategies.amd_setup_strategy import AMDSetupStrategy
+
+# Optional Fyers History Broker (Graceful Fallback)
+try:
+    from src.brokers.fyers_broker import FyersBroker
+    FYERS_AVAILABLE = True
+except ImportError:
+    FyersBroker = None
+    FYERS_AVAILABLE = False
+    print("Warning: FyersBroker not available (fyers_apiv3 not installed)")
 
 # Optional Imports (Graceful Fallback)
 try:
@@ -65,14 +72,19 @@ class TradingEngine:
         self.use_websocket = WS_AVAILABLE
         
         # Dedicated History Broker (Industrial Grade)
-        self.history_broker = FyersBroker()
-        try:
-            self.history_broker.connect()
-        except Exception:
-            print(" Warning: Fyers History Broker connection failed on init")
+        self.history_broker = None
+        if FYERS_AVAILABLE:
+            try:
+                self.history_broker = FyersBroker()
+                self.history_broker.connect()
+            except Exception as e:
+                print(f" Warning: Fyers History Broker connection failed on init: {e}")
+                self.history_broker = None
 
         print("[INIT] Initializing Market Regime Governor...")
-        self.governor = MarketRegimeGovernor(self.history_broker)
+        # Use Fyers broker for regime detection if available, otherwise use Kotak broker
+        regime_broker = self.history_broker if self.history_broker else self.broker
+        self.governor = MarketRegimeGovernor(regime_broker)
         
         # Strategy Regime Mapping
         self.strategy_regimes = {}
@@ -101,12 +113,12 @@ class TradingEngine:
                             continue
                     
                     # NORMAL EXIT CHECKS
-                    if pos['side'] == 'buy' and ltp >= pos['target']:
-                        print(f" Fast Exit: {strategy.name} Target Hit! LTP: {ltp}, Tgt: {pos['target']}")
+                    if pos['side'] == 'buy' and ltp >= pos.get('target', 0):
+                        print(f" Fast Exit: {strategy.name} Target Hit! LTP: {ltp}, Tgt: {pos.get('target')}")
                         strategy.close_trade(ltp, 'target (Fast)')
                         continue
-                    if pos['side'] == 'buy' and ltp <= pos['stop']:
-                        print(f" Fast Exit: {strategy.name} Stop Hit! LTP: {ltp}, Stop: {pos['stop']}")
+                    if pos['side'] == 'buy' and ltp <= pos.get('sl', 0):
+                        print(f" Fast Exit: {strategy.name} Stop Hit! LTP: {ltp}, Stop: {pos.get('sl')}")
                         strategy.close_trade(ltp, 'stop (Fast)')
                         continue
 
@@ -115,7 +127,7 @@ class TradingEngine:
             try:
                 # Need valid access token for Fyers WS
                 access_token = None
-                if self.history_broker and self.history_broker.access_token:
+                if self.history_broker and hasattr(self.history_broker, 'access_token') and self.history_broker.access_token:
                     access_token = self.history_broker.access_token
                 
                 if access_token:
@@ -335,19 +347,26 @@ class TradingEngine:
 
     def preload_history(self):
         if not self.broker: return
-        print(f"[HISTORY] Pre-loading history (Industrial Warmup via Fyers API)... [DEBUG: Strategies={len(self.strategies)}]", flush=True)
+        print(f"[HISTORY] Pre-loading history... [DEBUG: Strategies={len(self.strategies)}]", flush=True)
         if not self.broker.connected:
              self.broker.connect()
              
-        # Connect History Broker
-        if not self.history_broker.connected:
+        # Determine which broker to use for history
+        hist_broker = self.history_broker if self.history_broker else self.broker
+        
+        # Connect History Broker if needed
+        if not hist_broker.connected:
              print("[HISTORY] Connecting History Broker...", flush=True)
-             self.history_broker.connect()
+             try:
+                 hist_broker.connect()
+             except Exception as e:
+                 print(f"[HISTORY] History Broker connection failed: {e}", flush=True)
+                 return
              
         try:
-            # Fetch Nifty 50 History for Warmup via Fyers (Professional Grade)
+            # Fetch Nifty 50 History for Warmup
             print("[HISTORY] Fetching Nifty 50 history (1200 bars)...", flush=True)
-            df = self.history_broker.get_latest_bars("NSE:NIFTY50-INDEX", timeframe='1', limit=1200)
+            df = hist_broker.get_latest_bars("NSE:NIFTY50-INDEX", timeframe='1', limit=1200)
             
             if df is not None and not df.empty:
                 print(f"[HISTORY] Data received: {len(df)} bars. Columns: {df.columns.tolist()}", flush=True)
@@ -364,7 +383,7 @@ class TradingEngine:
                 ist = pytz.timezone('Asia/Kolkata')
                 self.last_update = datetime.now(ist)
                 
-                print(f"[HISTORY] SUCCESS: Historical data loaded via Fyers: {len(df)} bars", flush=True)
+                print(f"[HISTORY] SUCCESS: Historical data loaded: {len(df)} bars", flush=True)
                 print("[HISTORY] Warming up strategies...", flush=True)
                 for strategy in self.strategies:
                     try: 
@@ -376,7 +395,7 @@ class TradingEngine:
                         traceback.print_exc()
                 print("[HISTORY] SUCCESS: All strategies primed and ready.", flush=True)
             else:
-                print("[HISTORY] WARNING: Fyers history returned no data.", flush=True)
+                print("[HISTORY] WARNING: History returned no data.", flush=True)
         except Exception as e:
             print(f"[HISTORY] ERROR: History pre-load error: {e}", flush=True)
             traceback.print_exc()

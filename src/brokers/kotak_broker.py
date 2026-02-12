@@ -3,6 +3,7 @@ import os
 import sys
 import time
 import logging
+import traceback
 import pandas as pd
 from datetime import datetime
 import pyotp
@@ -90,8 +91,18 @@ class KotakBroker:
     def connect(self):
         """Connect to Kotak Neo API using TOTP Flow"""
         try:
-            if not self.CONSUMER_KEY:
-                self.logger.error("KOTAK_CONSUMER_KEY not set")
+            # Validate all required environment variables
+            missing_vars = []
+            if not self.CONSUMER_KEY: missing_vars.append("KOTAK_CONSUMER_KEY")
+            if not self.CONSUMER_SECRET: missing_vars.append("KOTAK_CONSUMER_SECRET")
+            if not self.MOBILE_NUMBER: missing_vars.append("KOTAK_MOBILE_NUMBER")
+            if not self.PASSWORD: missing_vars.append("KOTAK_PASSWORD")
+            if not self.MPIN: missing_vars.append("KOTAK_MPIN")
+            if not self.TOTP_SECRET: missing_vars.append("KOTAK_TOTP_SECRET")
+            
+            if missing_vars:
+                self.logger.error(f"Missing required environment variables: {', '.join(missing_vars)}")
+                self.connected = False
                 return
 
             self.logger.info(" Initializing Kotak Neo Client...")

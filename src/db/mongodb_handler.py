@@ -36,7 +36,7 @@ class MongoDBHandler:
     
     def __init__(self, connection_string: Optional[str] = None, db_name: str = "trading_bot"):
         self.db_name = db_name
-        self.connection_string = connection_string or os.getenv("MONGODB_URI")
+        self.connection_string = connection_string or os.getenv("MONGODB_URI") or os.getenv("MONGO_URI")
         self.client = None
         self.db = None
         self.connected = False

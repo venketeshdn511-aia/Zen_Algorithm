@@ -56,7 +56,7 @@ class MarketRegimeGovernor:
             response = None
             
             # Method 1: Direct broker.api.history (FyersBroker)
-            if hasattr(self.broker, 'api') and self.broker.api:
+            if hasattr(self.broker, 'api') and self.broker.api and hasattr(self.broker.api, 'history'):
                 try:
                     response = self.broker.api.history(data)
                     self.logger.info("Using broker.api.history() for regime detection")
@@ -71,12 +71,26 @@ class MarketRegimeGovernor:
                 except Exception as e:
                     self.logger.warning(f"broker.fyers.api.history failed: {e}")
             
+            # Method 3: Use broker.get_latest_bars (works with KotakBroker and FyersBroker)
+            if response is None and hasattr(self.broker, 'get_latest_bars'):
+                try:
+                    self.logger.info("Using broker.get_latest_bars() for regime detection")
+                    df = self.broker.get_latest_bars("NSE:NIFTY50-INDEX", timeframe="D", limit=60)
+                    if df is not None and not df.empty:
+                        df.columns = [c.lower() for c in df.columns]
+                        if 'date' not in df.columns and df.index.name:
+                            df = df.reset_index()
+                            df.rename(columns={df.columns[0]: 'date'}, inplace=True)
+                        return df
+                except Exception as e:
+                    self.logger.warning(f"broker.get_latest_bars failed: {e}")
+            
             if response is None:
                 self.logger.warning("No history method available on broker - using default RANGE regime")
                 return None
                     
-            if response.get('s') != 'ok':
-                self.logger.error(f"Fyers history fetch failed: {response}")
+            if not isinstance(response, dict) or response.get('s') != 'ok':
+                self.logger.error(f"History fetch failed or unexpected format: {response}")
                 return None
                 
             cols = ['date', 'open', 'high', 'low', 'close', 'volume']
