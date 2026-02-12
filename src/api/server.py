@@ -30,20 +30,40 @@ app = Flask(__name__,
 CORS(app) # Enable CORS for all routes
 engine_ref = None
 
-# Optional Integrations
-try:
-    from src.db.mongodb_handler import get_db_handler
-    db_handler = get_db_handler()
-except ImportError:
-    db_handler = None
+# Lazy-initialized integrations (deferred to avoid blocking Gunicorn startup)
+db_handler = None
+_db_initialized = False
+brain = None
+_brain_initialized = False
+BRAIN_AVAILABLE = False
 
-try:
-    from src.brain.learning_engine import get_brain
-    brain = get_brain()
-    BRAIN_AVAILABLE = True
-except ImportError:
-    brain = None
-    BRAIN_AVAILABLE = False
+def _get_db():
+    global db_handler, _db_initialized
+    if not _db_initialized:
+        _db_initialized = True
+        try:
+            from src.db.mongodb_handler import get_db_handler
+            db_handler = get_db_handler()
+            print("[LAZY] MongoDB handler initialized", flush=True)
+        except Exception as e:
+            print(f"[LAZY] MongoDB init failed: {e}", flush=True)
+            db_handler = None
+    return db_handler
+
+def _get_brain():
+    global brain, _brain_initialized, BRAIN_AVAILABLE
+    if not _brain_initialized:
+        _brain_initialized = True
+        try:
+            from src.brain.learning_engine import get_brain
+            brain = get_brain()
+            BRAIN_AVAILABLE = True
+            print("[LAZY] Brain engine initialized", flush=True)
+        except Exception as e:
+            print(f"[LAZY] Brain init skipped: {e}", flush=True)
+            brain = None
+            BRAIN_AVAILABLE = False
+    return brain
 
 import traceback
 
@@ -57,6 +77,10 @@ def get_engine():
     return engine_ref
 
 
+# Health check endpoint (must respond instantly for Render)
+@app.route('/healthz')
+def health_check():
+    return jsonify({"status": "ok"}), 200
 
 @app.route('/api/stats')
 def get_stats():
@@ -77,9 +101,10 @@ def get_stats():
 @app.route('/api/brain')
 def get_brain_data():
     try:
-        from src.brain.learning_engine import get_brain
-        brain = get_brain()
-        return jsonify(brain.get_insights())
+        b = _get_brain()
+        if b:
+            return jsonify(b.get_insights())
+        return jsonify({"status": "inactive", "message": "Brain not loaded yet"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -103,9 +128,10 @@ def get_balance():
 @app.route('/api/history')
 def get_history():
     engine = get_engine()
-    if db_handler and db_handler.connected:
+    db = _get_db()
+    if db and db.connected:
         try:
-            all_trades = db_handler.get_recent_trades(limit=100)
+            all_trades = db.get_recent_trades(limit=100)
             exit_trades = [t for t in all_trades if t.get('action') == 'EXIT' or t.get('pnl') is not None]
             return jsonify(exit_trades[:500])
         except: pass
@@ -138,9 +164,10 @@ def save_token():
             with open('.fyers_token', 'w') as f:
                 f.write(token)
             
-            if db_handler and db_handler.connected:
+            db = _get_db()
+            if db and db.connected:
                 try:
-                    db_handler.db["system_config"].update_one(
+                    db.db["system_config"].update_one(
                         {"_id": "fyers_session"},
                         {"$set": {"access_token": token}},
                         upsert=True
@@ -170,11 +197,12 @@ def test_telegram():
         return jsonify({"status": "success", "message": "Telegram ping sent"})
     return jsonify({"status": "error", "message": "Credentials missing"})
 
-@app.route('/api/brain')
+@app.route('/api/brain/insights')
 def get_brain_insights():
-    if BRAIN_AVAILABLE and brain:
+    b = _get_brain()
+    if b:
         try:
-            insights = brain.get_insights()
+            insights = b.get_insights()
             return jsonify({'status': 'active', 'available': True, **insights})
         except Exception as e:
             return jsonify({'status': 'error', 'message': str(e), 'available': False})
@@ -182,10 +210,11 @@ def get_brain_insights():
 
 @app.route('/api/brain/reset_cooling', methods=['POST'])
 def reset_brain_cooling():
-    if BRAIN_AVAILABLE and brain:
+    b = _get_brain()
+    if b:
         try:
-            brain.cooling_off_until = None
-            brain.save_state()
+            b.cooling_off_until = None
+            b.save_state()
             return jsonify({'status': 'success', 'message': 'Cooling-off period reset'})
         except Exception as e:
             return jsonify({'status': 'error', 'message': str(e)})
@@ -339,17 +368,19 @@ def handle_settings():
     engine = get_engine()
     if request.method == 'GET':
         settings = {"auto_login": True, "notifications": True, "max_risk": 5}
-        if db_handler and db_handler.connected:
+        db = _get_db()
+        if db and db.connected:
             try:
-                db_config = db_handler.db["system_config"].find_one({"_id": "user_settings"})
+                db_config = db.db["system_config"].find_one({"_id": "user_settings"})
                 if db_config: settings.update(db_config.get('settings', {}))
             except Exception as e: print(f"Error loading settings: {e}")
         return jsonify(settings)
     elif request.method == 'POST':
         data = request.json
-        if db_handler and db_handler.connected:
+        db = _get_db()
+        if db and db.connected:
             try:
-                db_handler.db["system_config"].update_one(
+                db.db["system_config"].update_one(
                     {"_id": "user_settings"},
                     {"$set": {"settings": data, "updated_at": datetime.utcnow().isoformat()}},
                     upsert=True

@@ -12,7 +12,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 # Load env before imports that might need it
 load_dotenv()
 
-from src.core.trading_engine import TradingEngine
+# NOTE: TradingEngine import is deferred to initialize_engine() to avoid
+# blocking Gunicorn startup with heavy module-level imports
 from src.api.server import app, init_app
 
 # Configure Logging
@@ -35,11 +36,15 @@ def initialize_engine():
     """Initialize TradingEngine in background to avoid blocking Flask startup"""
     global engine, engine_ready
     try:
-        print("[INIT] Starting TradingEngine initialization in background...", flush=True)
+        import time as _time
+        t0 = _time.time()
+        print("[INIT] Importing TradingEngine...", flush=True)
+        from src.core.trading_engine import TradingEngine
+        print(f"[INIT] Import done in {_time.time()-t0:.1f}s. Creating instance...", flush=True)
         engine = TradingEngine()
         init_app(engine)
         engine_ready = True
-        print("[INIT] TradingEngine ready!", flush=True)
+        print(f"[INIT] TradingEngine ready! Total init: {_time.time()-t0:.1f}s", flush=True)
     except Exception as e:
         print(f"[INIT] Critical Startup Error: {e}", flush=True)
         traceback.print_exc()
