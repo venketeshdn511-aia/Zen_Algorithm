@@ -13,27 +13,10 @@ from fyers_apiv3 import fyersModel
 
 # Local Imports
 from src.core.base_strategy import INITIAL_CAPITAL, LOT_SIZE
-# from src.brokers.fyers_paper_broker import FyersPaperBroker # Removed
 from src.brokers.kotak_paper_broker import KotakPaperBroker
-from src.brokers.kotak_broker import KotakBroker # <--- Added Real Broker
+from src.brokers.kotak_broker import KotakBroker
 from src.brokers.fyers_broker import FyersBroker
 from src.regime_detector import MarketRegimeGovernor
-from src.strategies.adapters_basic import (
-    EnhancedORBStrategy, RSIPullbackStrategy, TripleEMAStrategy, 
-    MomentumSurgeStrategy, BandReversionStrategy, EMARegimeStrategy, 
-    MACDMomentumStrategy
-)
-from src.strategies.adapters_advanced_p1 import (
-    NiftyV2Adapter, BuyerSellerZoneAdapter, MeanReversionMomentumAdapter, 
-    StatisticalStatArbAdapter
-)
-from src.strategies.adapters_advanced_p2 import (
-    FailedAuctionAdapter, InsideBarBreakoutAdapter, InstitutionalStrategyAdapter,
-    BearishBreakerAdapter, CompositeOperatorAdapter, AMDSetupAdapter,
-    PoorLowAdapter, PDHSweepAdapter, ORBBreakoutShortAdapter
-)
-from src.strategies.ema_crossover_15m_1m_adapter import EMACrossover15m1mAdapter
-from src.strategies.ema_crossover_short_15m_5m_adapter import EMACrossoverShort15m5mAdapter
 from src.strategies.failed_auction_strategy import FailedAuctionStrategy
 from src.strategies.amd_setup_strategy import AMDSetupStrategy
 
@@ -41,7 +24,6 @@ from src.strategies.amd_setup_strategy import AMDSetupStrategy
 try:
     from src.websocket.fyers_ws_handler import FyersWebSocketHandler, get_ws_handler
     WS_AVAILABLE = True
-    # WS_AVAILABLE = False
 except ImportError:
     WS_AVAILABLE = False
     print("Warning: WebSocket handler not available")
@@ -66,43 +48,11 @@ class TradingEngine:
     def __init__(self):
         self.lock = threading.Lock()
         # Initialize Kotak Broker (REAL TRADING)
-        # self.broker = KotakPaperBroker()
         self.broker = KotakBroker()
         print(" [WARNING] REAL TRADING MODE ACTIVE ")
         
-        # Initialize all strategy adapters
+        # Initialize only the requested strategies
         self.strategies = [
-            # Basic Adapters
-            EnhancedORBStrategy(broker=self.broker),
-            RSIPullbackStrategy(broker=self.broker),
-            TripleEMAStrategy(broker=self.broker),
-            MomentumSurgeStrategy(broker=self.broker),
-            BandReversionStrategy(broker=self.broker),
-            EMARegimeStrategy(broker=self.broker),
-            MACDMomentumStrategy(broker=self.broker),
-            
-            # Advanced P1
-            NiftyV2Adapter(broker=self.broker),
-            BuyerSellerZoneAdapter(broker=self.broker),
-            MeanReversionMomentumAdapter(broker=self.broker),
-            StatisticalStatArbAdapter(broker=self.broker),
-            
-            # Advanced P2
-            FailedAuctionAdapter(broker=self.broker),
-            InsideBarBreakoutAdapter(broker=self.broker),
-            InstitutionalStrategyAdapter(broker=self.broker),
-            BearishBreakerAdapter(broker=self.broker),
-            CompositeOperatorAdapter(broker=self.broker),
-            AMDSetupAdapter(broker=self.broker),
-            PoorLowAdapter(broker=self.broker),
-            PDHSweepAdapter(broker=self.broker),
-            ORBBreakoutShortAdapter(broker=self.broker),
-            
-            # EMA Crossovers
-            EMACrossover15m1mAdapter(broker=self.broker),
-            EMACrossoverShort15m5mAdapter(broker=self.broker),
-            
-            # Legacy/Specific
             FailedAuctionStrategy(broker=self.broker),
             AMDSetupStrategy(broker=self.broker)
         ]
