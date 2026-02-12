@@ -22,6 +22,16 @@ class MongoDBHandler:
     """
     Handles MongoDB Atlas connection and data operations.
     Falls back to local JSON if MongoDB is unavailable.
+    
+    THREAD-SAFETY NOTE (BUG-18):
+    This class is designed as a module-level singleton. While the connection
+    is lazy (deferred until first operation), concurrent imports from multiple
+    threads could create race conditions. In production with Gunicorn, ensure
+    the db_handler is initialized in the main thread before worker threads start.
+    
+    LAZY INITIALIZATION (BUG-16):
+    Connection is attempted in __init__ but won't block if it fails.
+    All operations check self.connected and fall back to local JSON gracefully.
     """
     
     def __init__(self, connection_string: Optional[str] = None, db_name: str = "trading_bot"):
@@ -32,7 +42,7 @@ class MongoDBHandler:
         self.connected = False
         self.local_file = "strategy_data.json"
         
-        # Initial connection attempt
+        # Initial connection attempt (non-blocking, falls back to local JSON)
         self.connect()
 
     def connect(self) -> bool:

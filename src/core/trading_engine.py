@@ -629,15 +629,32 @@ class TradingEngine:
         
 
     def emergency_close_all(self):
-        print("\n EMERGENCY SHUTDOWN INITIATED ")
+        print("\n🚨 EMERGENCY SHUTDOWN INITIATED 🚨")
         self.running = False
         for strategy in self.strategies:
             if strategy.position:
                 try:
                     symbol = strategy.position.get('symbol')
+                    entry_price = strategy.position.get('entry', 0)
+                    current_price = entry_price  # Fallback
+                    
+                    # Try to get current price from broker
                     if symbol and self.broker:
+                        try:
+                            current_price = self.broker.get_current_price(symbol, entry_price)
+                            if not current_price:
+                                current_price = entry_price
+                                print(f"⚠️  Could not fetch current price for {symbol}, using entry price")
+                        except Exception as e:
+                            print(f"⚠️  Price fetch failed for {symbol}: {e}, using entry price")
+                        
+                        # Close position on broker side
                         self.broker.close_position(symbol)
-                    strategy.close_trade(strategy.position.get('entry', 0), "SHUTDOWN_FORCE_CLOSE")
-                except Exception as e: print(f" Failed to close {strategy.name}: {e}")
+                    
+                    # Close position in strategy with current price
+                    strategy.close_trade(current_price, "SHUTDOWN_FORCE_CLOSE")
+                    print(f"✓ Closed {strategy.name} position at {current_price}")
+                    
+                except Exception as e: print(f"❌ Failed to close {strategy.name}: {e}")
         self.save_state()
-        print(" All strategies halted.")
+        print("🛑 All strategies halted.")

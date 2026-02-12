@@ -51,6 +51,39 @@ def calculate_macd(series, fast=12, slow=26, signal=9):
     return macd_line, signal_line, macd_line - signal_line
 
 def calculate_vwap(df):
+    """
+    Calculate VWAP (Volume Weighted Average Price) that resets per trading day.
+    This prevents cumulative VWAP across multiple days which would bias the indicator.
+    """
+    import pandas as pd
+    
     v = df['volume']
     tp = (df['high'] + df['low'] + df['close']) / 3
-    return (tp * v).cumsum() / v.cumsum()
+    
+    # Try to group by date for per-day VWAP
+    try:
+        # If index is DatetimeIndex, extract date
+        if isinstance(df.index, pd.DatetimeIndex):
+            date_col = df.index.date
+        elif 'datetime' in df.columns:
+            date_col = pd.to_datetime(df['datetime']).dt.date
+        else:
+            # Fallback to cumulative if no date info
+            return (tp * v).cumsum() / v.cumsum()
+        
+        # Calculate VWAP per day
+        df_temp = df.copy()
+        df_temp['date_grp'] = date_col
+        df_temp['tp'] = tp
+        df_temp['tpv'] = tp * v
+        
+        # Group by date and calculate cumulative within each day
+        vwap = df_temp.groupby('date_grp').apply(
+            lambda x: x['tpv'].cumsum() / x['volume'].cumsum()
+        ).reset_index(level=0, drop=True)
+        
+        return vwap
+        
+    except Exception as e:
+        print(f" [VWAP] Per-day calculation failed: {e}, using cumulative fallback")
+        return (tp * v).cumsum() / v.cumsum()

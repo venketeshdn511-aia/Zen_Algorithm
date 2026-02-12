@@ -326,6 +326,9 @@ class BaseStrategy:
         # Log to MongoDB
         if db_handler and db_handler.connected:
             try:
+                # Detect trade type from broker class
+                trade_type = "LIVE" if self.broker and "Kotak" in self.broker.__class__.__name__ else "PAPER"
+                
                 db_handler.save_trade({
                     "strategy": self.name,
                     "action": "ENTRY",
@@ -333,7 +336,7 @@ class BaseStrategy:
                     "price": entry_price,
                     "size": size,
                     "symbol": display_name,
-                    "type": "PAPER"
+                    "type": trade_type
                 })
             except Exception as e:
                 print(f" [DB] Trade ENTRY save failed: {e}")
@@ -389,6 +392,9 @@ class BaseStrategy:
             # Log to MongoDB
             if db_handler and db_handler.connected:
                 try:
+                    # Detect trade type from broker class
+                    trade_type = "LIVE" if self.broker and "Kotak" in self.broker.__class__.__name__ else "PAPER"
+                    
                     db_handler.save_trade({
                         "strategy": self.name,
                         "action": "EXIT",
@@ -398,7 +404,7 @@ class BaseStrategy:
                         "pnl": round(pnl, 2),
                         "reason": reason,
                         "symbol": self.position.get('symbol', self.name),
-                        "type": "PAPER"
+                        "type": trade_type
                     })
                 except Exception as e:
                     print(f" [DB] Trade EXIT save failed: {e}")
