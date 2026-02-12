@@ -70,7 +70,39 @@ class TradingEngine:
         self.broker = KotakBroker()
         print(" [WARNING] REAL TRADING MODE ACTIVE ")
         
+        # Initialize all strategy adapters
         self.strategies = [
+            # Basic Adapters
+            EnhancedORBStrategy(broker=self.broker),
+            RSIPullbackStrategy(broker=self.broker),
+            TripleEMAStrategy(broker=self.broker),
+            MomentumSurgeStrategy(broker=self.broker),
+            BandReversionStrategy(broker=self.broker),
+            EMARegimeStrategy(broker=self.broker),
+            MACDMomentumStrategy(broker=self.broker),
+            
+            # Advanced P1
+            NiftyV2Adapter(broker=self.broker),
+            BuyerSellerZoneAdapter(broker=self.broker),
+            MeanReversionMomentumAdapter(broker=self.broker),
+            StatisticalStatArbAdapter(broker=self.broker),
+            
+            # Advanced P2
+            FailedAuctionAdapter(broker=self.broker),
+            InsideBarBreakoutAdapter(broker=self.broker),
+            InstitutionalStrategyAdapter(broker=self.broker),
+            BearishBreakerAdapter(broker=self.broker),
+            CompositeOperatorAdapter(broker=self.broker),
+            AMDSetupAdapter(broker=self.broker),
+            PoorLowAdapter(broker=self.broker),
+            PDHSweepAdapter(broker=self.broker),
+            ORBBreakoutShortAdapter(broker=self.broker),
+            
+            # EMA Crossovers
+            EMACrossover15m1mAdapter(broker=self.broker),
+            EMACrossoverShort15m5mAdapter(broker=self.broker),
+            
+            # Legacy/Specific
             FailedAuctionStrategy(broker=self.broker),
             AMDSetupStrategy(broker=self.broker)
         ]
@@ -406,13 +438,21 @@ class TradingEngine:
     def run(self):
         print(" Trading loop started!", flush=True)
         if self.broker:
-            print(" Connecting to Broker...")
-            self.broker.connect()
             try:
-                print(" Fetching Market Regime...")
-                self.governor.update_regime()
-            except Exception as e: print(f"Regime init error: {e}")
-            self.preload_history()
+                print(" Connecting to Broker...")
+                self.broker.connect()
+                if self.broker.connected:
+                    try:
+                        print(" Fetching Market Regime...")
+                        self.governor.update_regime()
+                    except Exception as e: print(f"Regime init error: {e}")
+                    self.preload_history()
+                else:
+                    print(" [WARNING] Broker connection failed. Bot will run in DEGRADED MODE (no real trades).")
+            except Exception as e:
+                print(f" [CRITICAL] Broker connection crash: {e}")
+                self.running = False # Or let it run in degraded? Let's say False for safety if it crashed hard
+                return
             
         ist = pytz.timezone('Asia/Kolkata')
         from src.utils.notifications import send_telegram_message

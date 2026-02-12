@@ -102,18 +102,57 @@ class KotakBroker:
                 environment='prod'
             )
             
-            # Login Flow
+            # Login Flow (Handle SDK version differences)
             self.logger.info(f" Authenticating User: {self.MOBILE_NUMBER}")
             otp = self._generate_totp()
             if not otp:
                 self.logger.error(" TOTP Generation Failed")
+                self.connected = False
                 return
+            
+            try:
+                # Version 1.1.0+ of pk-neo-api-client uses login() and session_2fa()
+                if hasattr(self.api, 'login') and hasattr(self.api, 'session_2fa'):
+                    self.logger.info(" Using modern SDK login (v1.1.0+)...")
+                    login_resp = self.api.login(
+                        mobilenumber=self.MOBILE_NUMBER,
+                        password=self.PASSWORD
+                    )
+                    # For automated trading, session_2fa might use MPIN or OTP
+                    self.logger.info(" Initializing session with MPIN...")
+                    validate_resp = self.api.session_2fa(OTP=self.MPIN)
                 
-            login_resp = self.api.totp_login(
-                mobile_number=self.MOBILE_NUMBER, 
-                ucc=self.UCC, 
-                totp=otp
-            )
+                # Older SDK or custom version might use totp_login
+                elif hasattr(self.api, 'totp_login'):
+                     self.logger.info(" Using legacy totp_login() method...")
+                     login_resp = self.api.totp_login(
+                        mobile_number=self.MOBILE_NUMBER, 
+                        ucc=self.UCC, 
+                        totp=otp
+                     )
+                     self.logger.info(" Validating MPIN...")
+                     validate_resp = self.api.totp_validate(mpin=self.MPIN)
+                
+                else:
+                    methods = [m for m in dir(self.api) if not m.startswith('_')]
+                    self.logger.error(f" Error: No known login method found in NeoAPI. Available methods: {methods}")
+                    self.connected = False
+                    return
+
+            except Exception as e_login:
+                self.logger.error(f" Login Methodology Failure: {e_login}")
+                self.connected = False
+                return
+            
+            # Final result validation
+            if validate_resp and 'data' in validate_resp and 'token' in validate_resp['data']:
+                self.connected = True
+                self.logger.info(" Kotak Neo Connected Successfully!")
+            else:
+                self.logger.warning(f" Login result ambiguous: {validate_resp}")
+                # Some versions might consider success without token in data? No.
+                self.connected = False
+                return
             
             # Validate MPIN
             self.logger.info(" Validating MPIN...")
