@@ -99,6 +99,7 @@ class KotakBroker:
             if not self.PASSWORD: missing_vars.append("KOTAK_PASSWORD")
             if not self.MPIN: missing_vars.append("KOTAK_MPIN")
             if not self.TOTP_SECRET: missing_vars.append("KOTAK_TOTP_SECRET")
+            if not self.UCC: missing_vars.append("KOTAK_UCC")
             
             if missing_vars:
                 self.logger.error(f"Missing required environment variables: {', '.join(missing_vars)}")
@@ -106,60 +107,108 @@ class KotakBroker:
                 return
 
             self.logger.info(" Initializing Kotak Neo Client...")
-            # Init with consumer_secret
+            # NeoAPI v2.0.0+ does NOT accept consumer_secret in __init__
+            # Only pass consumer_key and environment
             self.api = NeoAPI(
                 consumer_key=self.CONSUMER_KEY,
-                consumer_secret=self.CONSUMER_SECRET,
                 environment='prod'
             )
             
-            # Login Flow (Handle SDK version differences)
+            # Login Flow - Use totp_login() + totp_validate() which works in ALL SDK versions
             self.logger.info(f" Authenticating User: {self.MOBILE_NUMBER}")
             otp = self._generate_totp()
             if not otp:
-                self.logger.error(" TOTP Generation Failed")
+                self.logger.error(" TOTP Generation Failed - check KOTAK_TOTP_SECRET")
                 self.connected = False
                 return
             
+            validate_resp = None
             try:
-                # Version 1.1.0+ of pk-neo-api-client uses login() and session_2fa()
-                if hasattr(self.api, 'login') and hasattr(self.api, 'session_2fa'):
-                    self.logger.info(" Using modern SDK login (v1.1.0+)...")
+                # PREFERRED: totp_login() + totp_validate() - works in both v1.0.3 and v2.0.0+
+                if hasattr(self.api, 'totp_login'):
+                    self.logger.info(" Using totp_login() flow...")
+                    
+                    mobile = self.MOBILE_NUMBER
+                    # Try login as provided in .env
+                    login_resp = self.api.totp_login(
+                        mobile_number=mobile,
+                        ucc=self.UCC,
+                        totp=otp
+                    )
+                    self.logger.info(f" totp_login result (attempt 1): {login_resp}")
+                    
+                    # If it fails with 'Invalid field MobileNumber', try stripping the +
+                    if login_resp and isinstance(login_resp, dict) and 'error' in login_resp:
+                        err_msg = str(login_resp.get('error', ''))
+                        if 'MobileNumber' in err_msg and mobile.startswith('+'):
+                            self.logger.info(" Retrying without '+' prefix...")
+                            mobile = mobile[1:] # Strip +
+                            login_resp = self.api.totp_login(
+                                mobile_number=mobile,
+                                ucc=self.UCC,
+                                totp=otp
+                            )
+                            self.logger.info(f" totp_login result (attempt 2): {login_resp}")
+
+                    # Attempt 3: Manual Request with PascalCase (MobileNumber)
+                    # Many times SDKs have outdated field names.
+                    if login_resp and isinstance(login_resp, dict) and 'error' in login_resp:
+                        self.logger.info(" Attempting manual request with PascalCase 'MobileNumber'...")
+                        try:
+                            import requests
+                            # Get domain and path
+                            base_url = self.api.configuration.get_domain(session_init=True)
+                            url = f"{base_url}/login/1.0/tradeApiLogin"
+                            
+                            headers = {
+                                'Authorization': self.api.configuration.consumer_key,
+                                'neo-fin-key': self.api.configuration.get_neo_fin_key(),
+                                'Content-Type': 'application/json'
+                            }
+                            
+                            # Try with 'MobileNumber' instead of 'mobileNumber'
+                            payload = {
+                                "MobileNumber": self.MOBILE_NUMBER if self.MOBILE_NUMBER.startswith('+') else f"+{self.MOBILE_NUMBER}",
+                                "ucc": self.UCC,
+                                "totp": otp
+                            }
+                            
+                            res = requests.post(url, headers=headers, json=payload)
+                            if res.status_code == 200:
+                                login_resp = res.json()
+                                self.logger.info(f" Manual login success (Attempt 3): {login_resp}")
+                                # Sync SDK session manually
+                                if login_resp and 'data' in login_resp:
+                                    self.api.configuration.view_token = login_resp['data'].get('token')
+                                    self.api.configuration.sid = login_resp['data'].get('sid')
+                            else:
+                                self.logger.error(f" Manual login failed (Attempt 3): {res.status_code} - {res.text}")
+                        except Exception as e_manual:
+                            self.logger.error(f" Manual request exception: {e_manual}")
+                    
+                    # ALWAYS run totp_validate even if a token is present in login_resp.
+                    # Kotak requires the 2FA step (MPIN) to unlock sensitive APIs like limits/balance.
+                    self.logger.info(" Performing 2FA with MPIN via totp_validate()...")
+                    validate_resp = self.api.totp_validate(mpin=self.MPIN)
+                    self.logger.info(f" totp_validate result: {validate_resp}")
+                
+                # FALLBACK: login() + session_2fa() for older SDK versions that don't have totp_login
+                elif hasattr(self.api, 'login') and hasattr(self.api, 'session_2fa'):
+                    self.logger.info(" Using login() + session_2fa() fallback...")
                     login_resp = self.api.login(
                         mobilenumber=self.MOBILE_NUMBER,
                         password=self.PASSWORD
                     )
-                    self.logger.info(f" Login result: {login_resp}")
+                    self.logger.info(f" login() result: {login_resp}")
                     
-                    # For automated trading, session_2fa might use MPIN or OTP
                     self.logger.info(" Initializing session with MPIN...")
                     try:
-                        # Try OTP uppercase first
                         validate_resp = self.api.session_2fa(OTP=self.MPIN)
                     except TypeError:
-                        # Fallback to otp lowercase
                         self.logger.info(" Falling back to 'otp' lowercase parameter...")
                         validate_resp = self.api.session_2fa(otp=self.MPIN)
                     
-                    self.logger.info(f" 2FA result: {validate_resp}")
-                
-                # Older SDK or custom version might use totp_login
-                elif hasattr(self.api, 'totp_login'):
-                     self.logger.info(" Using legacy totp_login() method...")
-                     login_resp = self.api.totp_login(
-                        mobile_number=self.MOBILE_NUMBER, 
-                        ucc=self.UCC, 
-                        totp=otp
-                     )
-                     self.logger.info(f" Legacy Login result: {login_resp}")
-                     
-                     self.logger.info(" Validating MPIN (Legacy)...")
-                     # Legacy uses totp_validate
-                     if hasattr(self.api, 'totp_validate'):
-                        validate_resp = self.api.totp_validate(mpin=self.MPIN)
-                        self.logger.info(f" Legacy Validate result: {validate_resp}")
-                     else:
-                        validate_resp = login_resp # Some versions return everything in login_resp
+                    self.logger.info(f" session_2fa result: {validate_resp}")
                 
                 else:
                     methods = [m for m in dir(self.api) if not m.startswith('_')]
@@ -169,27 +218,38 @@ class KotakBroker:
 
             except Exception as e_login:
                 self.logger.error(f" Login Methodology Failure: {e_login}")
-                self.logger.error(traceback.format_exc())
+                try:
+                    self.logger.error(traceback.format_exc())
+                except Exception:
+                    self.logger.error(f" (traceback unavailable)")
                 self.connected = False
                 return
             
             # Final result validation and Setup
-            if validate_resp and 'data' in validate_resp and 'token' in validate_resp['data']:
-                self.connected = True
-                self.logger.info(" Kotak Neo Connected Successfully!")
-                
-                # Setup WS Callbacks
-                self.api.on_message = self.on_message
-                self.api.on_error = self.on_error
-                self.api.on_open = self.on_open
-                self.api.on_close = self.on_close
+            if validate_resp and isinstance(validate_resp, dict):
+                resp_data = validate_resp.get('data', {})
+                if isinstance(resp_data, dict) and 'token' in resp_data:
+                    self.connected = True
+                    self.logger.info(" Kotak Neo Connected Successfully!")
+                    
+                    # Setup WS Callbacks
+                    self.api.on_message = self.on_message
+                    self.api.on_error = self.on_error
+                    self.api.on_open = self.on_open
+                    self.api.on_close = self.on_close
+                else:
+                    self.logger.error(f" Login Failed - no token in response: {validate_resp}")
+                    self.connected = False
             else:
                 self.logger.error(f" Login Failed or Ambiguous: {validate_resp}")
                 self.connected = False
                     
         except Exception as e:
             self.logger.error(f" Kotak Connection Critical Error: {e}")
-            self.logger.error(traceback.format_exc())
+            try:
+                self.logger.error(traceback.format_exc())
+            except Exception:
+                self.logger.error(f" (traceback unavailable)")
             self.connected = False
 
     def get_instrument_token(self, symbol, exchange_segment="nse_cm"):

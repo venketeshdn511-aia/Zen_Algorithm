@@ -298,6 +298,26 @@ class BaseStrategy:
 
         display_name = symbol if symbol else self.name
         
+        # === LIVE ORDER PLACEMENT ===
+        broker_order_id = None
+        if self.broker and hasattr(self.broker, 'place_order') and self.broker.connected:
+            try:
+                broker_side = 'BUY' if side == 'buy' else 'SELL'
+                order_resp = self.broker.place_order(
+                    symbol=display_name,
+                    qty=size,
+                    side=broker_side,
+                    order_type='MARKET',
+                    product='MIS'
+                )
+                print(f" [BROKER] Entry Order Response: {order_resp}")
+                if order_resp and isinstance(order_resp, dict):
+                    broker_order_id = order_resp.get('nOrdNo') or order_resp.get('order_id')
+                    self.position['broker_order_id'] = broker_order_id
+            except Exception as e:
+                print(f" [BROKER] Entry Order FAILED: {e}")
+                # Continue with internal tracking even if broker order fails
+        
         # Attractive Telegram Signal
         side_emoji = " BUY" if side == 'buy' else " SELL"
         msg = (
@@ -346,6 +366,24 @@ class BaseStrategy:
     def close_trade(self, exit_price, reason):
         if self.position:
             ist = pytz.timezone('Asia/Kolkata')
+            
+            # === LIVE EXIT ORDER ===
+            if self.broker and hasattr(self.broker, 'place_order') and self.broker.connected:
+                try:
+                    exit_side = 'SELL' if self.position['side'] == 'buy' else 'BUY'
+                    exit_symbol = self.position.get('symbol', self.name)
+                    exit_qty = self.position.get('size', LOT_SIZE)
+                    order_resp = self.broker.place_order(
+                        symbol=exit_symbol,
+                        qty=exit_qty,
+                        side=exit_side,
+                        order_type='MARKET',
+                        product='MIS'
+                    )
+                    print(f" [BROKER] Exit Order Response: {order_resp}")
+                except Exception as e:
+                    print(f" [BROKER] Exit Order FAILED: {e}")
+            
             if self.position['side'] == 'buy':
                 pnl = (exit_price - self.position['entry']) * self.position['size']
             else:
