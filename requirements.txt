@@ -14,4 +14,4 @@ fpdf2==2.7.7
 websocket-client==1.6.1
 six
 scikit-learn==1.3.2
-pk-neo-api-client==1.1.0
+pk-neo-api-client==1.0.3
