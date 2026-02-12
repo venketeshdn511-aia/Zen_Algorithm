@@ -106,7 +106,7 @@ class MLPredictor:
             strat = data.get('strategy', 'Unknown')
             try:
                 strat_idx = self.le_strategy.transform([strat])[0]
-            except:
+            except (ValueError, KeyError):
                 self.le_strategy.classes_ = np.append(self.le_strategy.classes_, strat)
                 strat_idx = self.le_strategy.transform([strat])[0]
 
@@ -114,7 +114,7 @@ class MLPredictor:
             regime = data.get('regime', 'UNKNOWN')
             try:
                 regime_idx = self.le_regime.transform([regime])[0]
-            except:
+            except (ValueError, KeyError):
                 regime_idx = 0 # Default
 
             # 3. Time (Hour)

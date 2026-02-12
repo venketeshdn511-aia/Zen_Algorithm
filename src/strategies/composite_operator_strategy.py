@@ -61,7 +61,8 @@ class CompositeOperatorStrategy(StrategyInterface):
                  # Try parsing? Or fallback
                  try:
                      temp_df['date_grp'] = pd.to_datetime(temp_df['datetime']).dt.date
-                 except:
+                 except Exception as e:
+                     print(f" [CO] VWAP date parsing error: {e}")
                      return (temp_df['Close'].rolling(50).mean()) # Fallback
         else:
             return (temp_df['Close'].rolling(50).mean()) 

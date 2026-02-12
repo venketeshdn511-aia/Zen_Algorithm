@@ -38,7 +38,9 @@ class KotakBroker:
         if not self.TOTP_SECRET: return None
         try:
             return pyotp.TOTP(self.TOTP_SECRET).now()
-        except: return None
+        except Exception as e:
+            print(f" [KOTAK] TOTP generation failed: {e}")
+            return None
         
     # WS Callbacks
     # WS Callbacks
@@ -93,9 +95,10 @@ class KotakBroker:
                 return
 
             self.logger.info(" Initializing Kotak Neo Client...")
-            # Init without consumer_secret for this version
+            # Init with consumer_secret
             self.api = NeoAPI(
                 consumer_key=self.CONSUMER_KEY,
+                consumer_secret=self.CONSUMER_SECRET,
                 environment='prod'
             )
             
@@ -363,8 +366,6 @@ class KotakBroker:
             self.connected = False
             return {"status": "error", "message": str(e)}
 
-        return True
-
     def get_latest_bars(self, symbol, timeframe, limit=1000):
         """
         Fetch historical data from Aggregator (Live Accumulation or Primed)
@@ -412,12 +413,15 @@ class KotakBroker:
                                 dt = row['datetime']
                             elif 'timestamp' in row:
                                 try: dt = datetime.fromtimestamp(float(row['timestamp']))
-                                except: dt = datetime.now()
+                                except Exception as e:
+                                    print(f" [WS] Timestamp parse error: {e}")
+                                    dt = datetime.now()
                         
                         # Ensure dt is a datetime object
                         if isinstance(dt, str):
                             try: dt = datetime.fromisoformat(dt)
-                            except: pass
+                            except Exception as e:
+                                print(f" [WS] ISO date parse error: {e}")
 
                         bar = {
                             'datetime': dt,
@@ -478,7 +482,7 @@ class KotakBroker:
                     val = data[field]
                     try:
                         return float(val)
-                    except: continue
+                    except (ValueError, TypeError): continue
             return 0.0
         except Exception as e:
             self.logger.error(f"Balance fetch failed: {e}")

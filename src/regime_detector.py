@@ -55,21 +55,21 @@ class MarketRegimeGovernor:
             # Try different methods to fetch history
             response = None
             
-            # Method 1: FyersPaperBroker (broker.fyers.api.history)
-            if hasattr(self.broker, 'fyers') and hasattr(self.broker.fyers, 'api') and self.broker.fyers.api:
-                try:
-                    response = self.broker.fyers.api.history(data)
-                    self.logger.info("Using broker.fyers.api.history() for regime detection")
-                except Exception as e:
-                    self.logger.warning(f"broker.fyers.api.history failed: {e}")
-            
-            # Method 2: FyersBroker directly (broker.api.history)
-            if response is None and hasattr(self.broker, 'api') and self.broker.api:
+            # Method 1: Direct broker.api.history (FyersBroker)
+            if hasattr(self.broker, 'api') and self.broker.api:
                 try:
                     response = self.broker.api.history(data)
                     self.logger.info("Using broker.api.history() for regime detection")
                 except Exception as e:
                     self.logger.warning(f"broker.api.history failed: {e}")
+            
+            # Method 2: Nested broker.fyers.api.history (legacy/paper broker path)
+            if response is None and hasattr(self.broker, 'fyers') and hasattr(self.broker.fyers, 'api') and self.broker.fyers.api:
+                try:
+                    response = self.broker.fyers.api.history(data)
+                    self.logger.info("Using broker.fyers.api.history() for regime detection")
+                except Exception as e:
+                    self.logger.warning(f"broker.fyers.api.history failed: {e}")
             
             if response is None:
                 self.logger.warning("No history method available on broker - using default RANGE regime")

@@ -95,7 +95,7 @@ class FailedAuctionStrategy(BaseStrategy):
                 # We need to translate Spot Stop to Option Stop
                 
                 # Risk in Spot
-                stop_loss_spot = max(row['high'], resistance_level)
+                stop_loss_spot = max(curr['high'], resistance_level)
                 risk_spot = stop_loss_spot - spot_price
                 if risk_spot <= 0: risk_spot = spot_price * 0.001
                 
@@ -122,11 +122,17 @@ class FailedAuctionStrategy(BaseStrategy):
             # Exit Management
             self.update_trailing_stop(df)
             pos = self.position
+            current_spot = float(df['close'].iloc[-1])
             match = re.search(r'NIFTY[A-Z0-9]+?(\d{5})(CE|PE)', pos['symbol'])
             
             if match and self.broker:
-                curr_premium = self.broker.fyers.get_option_chain(int(match.group(1)), match.group(2))
-                if not curr_premium: return
+                strike = int(match.group(1))
+                otype = match.group(2)
+                expiry = self.get_fyers_expiry_code()
+                curr_premium = self.broker.get_option_price(strike, otype, expiry)
+                if not curr_premium:
+                    self.status = f"Waiting for option price: {pos['symbol']}"
+                    return
                 
                 spot_stop = pos.get('spot_stop', 0)
                 self.status = f"Active {pos['symbol']}: {curr_premium:.1f} | Spot: {current_spot:.1f}"

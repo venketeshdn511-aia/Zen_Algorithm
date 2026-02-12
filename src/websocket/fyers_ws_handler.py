@@ -354,8 +354,8 @@ class FyersWebSocketHandler:
         if self.ws:
             try:
                 self.ws.close_connection()
-            except:
-                pass
+            except Exception as e:
+                self._log(f"Error closing WebSocket: {e}", 'warning')
         
         self._log("WebSocket stopped", 'info')
     

@@ -134,8 +134,11 @@ def get_history():
             all_trades = db.get_recent_trades(limit=100)
             exit_trades = [t for t in all_trades if t.get('action') == 'EXIT' or t.get('pnl') is not None]
             return jsonify(exit_trades[:500])
-        except: pass
+        except Exception as e:
+            print(f" [API] DB trade history fetch failed: {e}")
     
+    if engine is None:
+        return jsonify([])  # Engine not ready yet
     all_trades = []
     stats = engine.get_portfolio_stats()
     for s in stats['strategies']:
@@ -148,6 +151,8 @@ def get_history():
 @app.route('/api/refresh')
 def refresh_data():
     engine = get_engine()
+    if engine is None:
+        return jsonify({'status': 'error', 'message': 'Engine initializing'})
     if engine.fetch_data():
         engine.run_strategies()
         return jsonify({'status': 'success'})
@@ -172,7 +177,8 @@ def save_token():
                         {"$set": {"access_token": token}},
                         upsert=True
                     )
-                except: pass
+                except Exception as e:
+                    print(f" [API] DB token save failed: {e}")
             
             if engine.validate_token(token):
                 engine.running = True
@@ -222,7 +228,26 @@ def reset_brain_cooling():
 
 @app.route('/debug')
 def debug_app():
-    return " Bot Core is Active"
+    startup_error = app.config.get('STARTUP_ERROR')
+    engine_status = app.config.get('ENGINE_STATUS', 'UNKNOWN')
+    
+    if startup_error:
+        return f"""
+        <html>
+            <body style="font-family: monospace; background: #1a1a1a; color: #ff5555; padding: 20px;">
+                <h1>Startup Failed</h1>
+                <h3>Status: {engine_status}</h3>
+                <pre style="background: #000; padding: 15px; border-radius: 5px; overflow: auto;">{startup_error}</pre>
+                <p>Please fix the error and redeploy.</p>
+            </body>
+        </html>
+        """, 500
+    
+    engine = get_engine()
+    if not engine:
+         return "<h1>Initializing...</h1><p>Engine is still starting. Please refresh in 10 seconds.</p>"
+
+    return "<h1>Bot Core is Active</h1><p>Trading Engine Running.</p>"
 
 @app.route('/api/start')
 def start_trading():
@@ -324,7 +349,8 @@ def get_strategy_details(strategy_name):
                 first_trade = datetime.fromisoformat(first_time.replace('+05:30', ''))
                 last_trade = datetime.fromisoformat(last_time.replace('+05:30', ''))
                 total_days_active = max(1, (last_trade - first_trade).days)
-        except: pass
+        except Exception as e:
+            print(f" [API] Date parsing error in strategy detail: {e}")
         
     daily_avg_pnl = cumulative_pnl / total_days_active
     projected_6mo = daily_avg_pnl * 20 * 6

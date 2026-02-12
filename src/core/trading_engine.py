@@ -149,8 +149,6 @@ class TradingEngine:
                 else:
                     print("[WS] Skipped: No Fyers Access Token availability")
                     self.use_websocket = False
-                self.ws_handler.start()
-                print("[WS] WebSocket started with Fast Exit Trigger")
             except Exception as e:
                 print(f"WebSocket init error: {e}")
                 self.use_websocket = False
@@ -224,7 +222,8 @@ class TradingEngine:
                     {"$set": {"running": self.running, "last_reset_date": self.last_reset_date}},
                     upsert=True
                 )
-            except: pass
+            except Exception as e:
+                print(f" [SAVE] DB bot_state update failed: {e}")
         else:
             with open(DATA_FILE, 'w') as f:
                 json.dump(full_state, f, indent=2)
@@ -237,7 +236,8 @@ class TradingEngine:
             try:
                 with open(DATA_FILE, 'r') as f:
                     data = json.load(f)
-            except: pass
+            except Exception as e:
+                print(f" [LOAD] Local state file read failed: {e}")
             
         if data:
             self.running = data.get('running', True) # Default to True for easier startup
@@ -249,7 +249,8 @@ class TradingEngine:
                     if conf: 
                         self.running = conf.get('running', False)
                         self.last_reset_date = conf.get('last_reset_date')
-                except: pass
+                except Exception as e:
+                    print(f" [LOAD] DB bot_state read failed: {e}")
 
             if 'strategies' in data:
                 saved_map = {s.get('name'): s for s in data['strategies']}
@@ -283,8 +284,10 @@ class TradingEngine:
                         if not external_running and self.running:
                              print(" External Stop Signal Detected (File)")
                              self.running = False
-                except: pass
-        except Exception: pass
+                except Exception as e:
+                    print(f" [SYNC] Local file read error: {e}")
+        except Exception as e:
+            print(f" [SYNC] Run status sync error: {e}")
 
     def fetch_data(self):
         if self.use_websocket and self.ws_handler and self.ws_handler.is_connected():
@@ -480,7 +483,6 @@ class TradingEngine:
 
                         self.run_strategies()
                         self.update_live_positions()
-                        self.update_live_positions() # <--- Added Active Monitoring
                         self.save_state()
                     else:
                         if loop_count % 8 == 0: print(f" [{now.strftime('%H:%M:%S')}] Data fetch failed")
@@ -596,7 +598,8 @@ class TradingEngine:
                 print(f" Database clear failed: {e}")
         if os.path.exists(DATA_FILE):
             try: os.remove(DATA_FILE)
-            except: pass
+            except Exception as e:
+                print(f" [RESET] Failed to remove local state file: {e}")
             
         # Re-initialize strategies
         for strategy in self.strategies:

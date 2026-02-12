@@ -73,8 +73,6 @@ class StatisticalStatArbAdapter(BaseStrategy):
                 # EASIER WAY: If Broker has direct API access attribute (like self.broker.api)
                 
                 api = getattr(self.broker, 'api', None)
-                if not api and hasattr(self.broker, 'fyers'): # FyersPaperBroker
-                    api = self.broker.fyers.api
                     
                 if api:
                     data = {"symbols": option_sym}
@@ -86,7 +84,8 @@ class StatisticalStatArbAdapter(BaseStrategy):
             # FyersPaperBroker doesn't expose a direct "get_quote(sym)" efficiently.
             
             return 0.0
-        except:
+        except Exception as e:
+            print(f"StatArb option LTP error: {e}")
             return 0.0
 
     def process(self, df, current_bar):

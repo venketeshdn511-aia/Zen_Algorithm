@@ -369,7 +369,8 @@ class PriceActionStrategy(StrategyInterface):
         try:
             curr_time = timestamp.time()
             return curr_time < self.no_new_trades_after
-        except:
+        except Exception as e:
+            print(f" [TIME] Trading time check error: {e}")
             return True
     
     def _should_exit_by_time(self, timestamp):
@@ -377,7 +378,8 @@ class PriceActionStrategy(StrategyInterface):
         try:
             curr_time = timestamp.time()
             return curr_time >= self.exit_time
-        except:
+        except Exception as e:
+            print(f" [TIME] Exit time check error: {e}")
             return False
     
     # ===================== INDICATORS (ATR & ADX) =====================

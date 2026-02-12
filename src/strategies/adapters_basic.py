@@ -59,7 +59,10 @@ class EnhancedORBStrategy(BaseStrategy):
             
             match = re.search(r'NIFTY[A-Z0-9]+?(\d{5})(CE|PE)', symbol)
             if match and self.broker:
-                curr_premium = self.broker.fyers.get_option_chain(int(match.group(1)), match.group(2))
+                strike = int(match.group(1))
+                otype = match.group(2)
+                expiry = self.get_fyers_expiry_code()
+                curr_premium = self.broker.get_option_price(strike, otype, expiry)
                 if not curr_premium: return
                 
                 spot_stop = pos.get('spot_stop', 0)
@@ -119,7 +122,10 @@ class RSIPullbackStrategy(BaseStrategy):
             pos = self.position
             match = re.search(r'NIFTY[A-Z0-9]+?(\d{5})(CE|PE)', pos['symbol'])
             if match and self.broker:
-                curr_premium = self.broker.fyers.get_option_chain(int(match.group(1)), match.group(2))
+                strike = int(match.group(1))
+                otype = match.group(2)
+                expiry = self.get_fyers_expiry_code()
+                curr_premium = self.broker.get_option_price(strike, otype, expiry)
                 if not curr_premium: return
                 
                 self.status = f"Active {pos['symbol']}: Premium {curr_premium:.1f}. RSI: {rsi:.1f}."
@@ -169,7 +175,10 @@ class TripleEMAStrategy(BaseStrategy):
             pos = self.position
             match = re.search(r'NIFTY[A-Z0-9]+?(\d{5})(CE|PE)', pos['symbol'])
             if match and self.broker:
-                curr_premium = self.broker.fyers.get_option_chain(int(match.group(1)), match.group(2))
+                strike = int(match.group(1))
+                otype = match.group(2)
+                expiry = self.get_fyers_expiry_code()
+                curr_premium = self.broker.get_option_price(strike, otype, expiry)
                 if not curr_premium: return
                 self.status = f"Active {pos['symbol']}: Premium {curr_premium:.1f}."
                 if curr_premium <= pos['stop']: 
@@ -217,7 +226,10 @@ class MomentumSurgeStrategy(BaseStrategy):
             pos = self.position
             match = re.search(r'NIFTY[A-Z0-9]+?(\d{5})(CE|PE)', pos['symbol'])
             if match and self.broker:
-                curr_premium = self.broker.fyers.get_option_chain(int(match.group(1)), match.group(2))
+                strike = int(match.group(1))
+                otype = match.group(2)
+                expiry = self.get_fyers_expiry_code()
+                curr_premium = self.broker.get_option_price(strike, otype, expiry)
                 if not curr_premium: return
                 self.status = f"Active {pos['symbol']}: Premium {curr_premium:.1f}."
                 if curr_premium <= pos['stop']: 
@@ -268,7 +280,10 @@ class BandReversionStrategy(BaseStrategy):
             pos = self.position
             match = re.search(r'NIFTY[A-Z0-9]+?(\d{5})(CE|PE)', pos['symbol'])
             if match and self.broker:
-                curr_premium = self.broker.fyers.get_option_chain(int(match.group(1)), match.group(2))
+                strike = int(match.group(1))
+                otype = match.group(2)
+                expiry = self.get_fyers_expiry_code()
+                curr_premium = self.broker.get_option_price(strike, otype, expiry)
                 if not curr_premium: return
                 self.status = f"Active {pos['symbol']}: Premium {curr_premium:.1f}."
                 if curr_premium <= pos['stop']: 
@@ -326,7 +341,10 @@ class EMARegimeStrategy(BaseStrategy):
             pos = self.position
             match = re.search(r'NIFTY[A-Z0-9]+?(\d{5})(CE|PE)', pos['symbol'])
             if match and self.broker:
-                curr_premium = self.broker.fyers.get_option_chain(int(match.group(1)), match.group(2))
+                strike = int(match.group(1))
+                otype = match.group(2)
+                expiry = self.get_fyers_expiry_code()
+                curr_premium = self.broker.get_option_price(strike, otype, expiry)
                 if not curr_premium: return
                 self.status = f"Active {pos['symbol']}: Premium {curr_premium:.1f}."
                 if curr_premium <= pos['stop']: 
@@ -375,7 +393,10 @@ class MACDMomentumStrategy(BaseStrategy):
             pos = self.position
             match = re.search(r'NIFTY[A-Z0-9]+?(\d{5})(CE|PE)', pos['symbol'])
             if match and self.broker:
-                curr_premium = self.broker.fyers.get_option_chain(int(match.group(1)), match.group(2))
+                strike = int(match.group(1))
+                otype = match.group(2)
+                expiry = self.get_fyers_expiry_code()
+                curr_premium = self.broker.get_option_price(strike, otype, expiry)
                 if not curr_premium: return
                 self.status = f"Active {pos['symbol']}: Premium {curr_premium:.1f}"
                 if curr_premium <= pos['stop']: 

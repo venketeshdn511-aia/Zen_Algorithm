@@ -224,8 +224,8 @@ class MeanReversionMomentumStrategy(StrategyInterface):
                 last_bar_time = df.index[-1]
                 if hasattr(last_bar_time, 'time'):
                     current_time = last_bar_time.time()
-            except:
-                pass
+            except Exception as e:
+                print(f" [MRM] Time extraction error: {e}")
         
         # Time filter (skip in backtest mode, use bar time for live)
         if not self.backtest_mode:

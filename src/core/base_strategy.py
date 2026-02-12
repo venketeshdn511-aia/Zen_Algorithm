@@ -73,7 +73,6 @@ class BaseStrategy:
             'wins': self.wins,
             'losses': self.losses,
             'win_rate': round(win_rate, 1),
-            'status': self.status,
             'position': self.position,
             'daily_start_capital': self.daily_start_capital,
             'trades': self.trades,
@@ -108,7 +107,8 @@ class BaseStrategy:
                 'close': 'last',
                 'volume': 'sum'
             }).dropna()
-        except:
+        except Exception as e:
+            print(f" [RESAMPLE] 5m resample failed: {e}")
             return df
             
     def get_recent_swing(self, df, side, lookback=20):
@@ -247,7 +247,8 @@ class BaseStrategy:
                     current_atr = float(row.get('atr', 0))
                     avg_atr = float(df['atr'].tail(20).mean())
                     conditions['atr_ratio'] = current_atr / avg_atr if avg_atr > 0 else 1.0
-            except: pass
+            except Exception as e:
+                print(f" [BRAIN] Condition extraction error: {e}")
         return conditions
     
     def execute_trade(self, entry_price, side, stop, target, size, symbol=None, df=None, skip_brain=False):
@@ -277,7 +278,8 @@ class BaseStrategy:
                     if (datetime.now(ist) - last_entry).total_seconds() < 60:
                         self.status = " Throttle: Entry blocked (Min 60s between trades)."
                         return None
-                except: pass
+                except Exception as e:
+                    print(f" [THROTTLE] Time parse error: {e}")
 
         self.position = {
             'side': side,
@@ -316,7 +318,8 @@ class BaseStrategy:
                 conf_emoji = "" if confidence > 80 else ""
                 msg += f"\n"
                 msg += f" <b>AI Confidence:</b> {confidence}% {conf_emoji}"
-            except: pass
+            except Exception as e:
+                print(f" [BRAIN] Confidence score error: {e}")
 
         send_telegram_message(msg)
         
@@ -332,7 +335,8 @@ class BaseStrategy:
                     "symbol": display_name,
                     "type": "PAPER"
                 })
-            except: pass
+            except Exception as e:
+                print(f" [DB] Trade ENTRY save failed: {e}")
 
         return True
 
@@ -396,7 +400,8 @@ class BaseStrategy:
                         "symbol": self.position.get('symbol', self.name),
                         "type": "PAPER"
                     })
-                except: pass
+                except Exception as e:
+                    print(f" [DB] Trade EXIT save failed: {e}")
 
             # Brain Feedback
             if BRAIN_AVAILABLE and brain:
@@ -406,7 +411,8 @@ class BaseStrategy:
                         'conditions': self.position.get('conditions', {})
                     }
                     brain.record_trade_outcome(brain_trade)
-                except: pass
+                except Exception as e:
+                    print(f" [BRAIN] Trade outcome record failed: {e}")
 
             self.position = None
             self.status = "Scanning alpha vectors..."

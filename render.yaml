@@ -12,7 +12,7 @@ services:
       - key: PORT
         value: 10000
     # Credentials (User must set these in Dashboard)
-      - key: MONGO_URI
+      - key: MONGODB_URI
         sync: false
       - key: FYERS_APP_ID
         sync: false
@@ -24,5 +24,21 @@ services:
         sync: false
       - key: KOTAK_CONSUMER_KEY
         sync: false
+      - key: KOTAK_CONSUMER_SECRET
+        sync: false
       - key: KOTAK_ACCESS_TOKEN
+        sync: false
+      - key: KOTAK_MOBILE_NUMBER
+        sync: false
+      - key: KOTAK_PASSWORD
+        sync: false
+      - key: KOTAK_MPIN
+        sync: false
+      - key: KOTAK_TOTP_SECRET
+        sync: false
+      - key: KOTAK_UCC
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
         sync: false

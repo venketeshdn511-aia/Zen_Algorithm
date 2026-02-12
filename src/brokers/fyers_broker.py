@@ -245,11 +245,13 @@ class FyersBroker:
                                         with open('.fyers_token', 'w') as f:
                                             f.write(self.access_token)
                                         os.environ['FYERS_ACCESS_TOKEN'] = self.access_token
-                                    except: pass
+                                    except Exception as e:
+                                        self.logger.warning(f"Could not save refreshed token: {e}")
                                     return
                                 else:
                                     if attempt < max_retries - 1: time.sleep(1)
-                            except:
+                            except Exception as e:
+                                self.logger.warning(f"Token verification error (attempt): {e}")
                                 if attempt < max_retries - 1: time.sleep(1)
             
             # Priority 2: Try to load saved token file
@@ -271,8 +273,8 @@ class FyersBroker:
                         self.connected = True
                         self.logger.info(f" Connected to Fyers API (using saved token)")
                         return
-                except:
-                    self.logger.warning("Saved token expired or invalid")
+                except Exception as e:
+                    self.logger.warning(f"Saved token expired or invalid: {e}")
             
             # Priority 3: Try to load from MongoDB (Cloud Persistence)
             self.logger.info(" Priority 3: Check MongoDB Token")
@@ -292,8 +294,8 @@ class FyersBroker:
                             self.connected = True
                             self.logger.info(" Connected using MongoDB token")
                             return
-                except:
-                    pass
+                except Exception as e:
+                    self.logger.warning(f"MongoDB token load failed: {e}")
             
             # Final Fallback: Manual Login Alert
             if not self.connected:

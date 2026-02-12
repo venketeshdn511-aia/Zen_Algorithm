@@ -287,8 +287,8 @@ class FyersPaperBroker:
                 current_premium = self.fyers.get_option_chain(strike=pos['strike'], option_type=pos['type'])
                 if current_premium:
                     unrealized += (current_premium - pos['entry_price']) * pos['shares']
-            except:
-                pass  # Skip if can't get current price
+            except Exception as e:
+                self.logger.warning(f"Could not get current premium for {sym}: {e}")
         
         return realized + unrealized
 

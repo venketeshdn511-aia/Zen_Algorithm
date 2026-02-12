@@ -27,7 +27,9 @@ class FailedAuctionAdapter(BaseStrategy):
         if len(df) < 200: return
         try:
              logic_df = df.resample('15min').agg({'open': 'first', 'high': 'max', 'low': 'min', 'close': 'last', 'volume': 'sum'}).dropna()
-        except: return
+        except Exception as e:
+             print(f" [FA-Adapter] Resample error: {e}")
+             return
         logic_df = logic_df.rename(columns={'open': 'Open', 'high': 'High', 'low': 'Low', 'close': 'Close', 'volume': 'Volume'})
         signal = self.strategy.calculate_signal(logic_df)
         row = df.iloc[-1]
@@ -70,7 +72,9 @@ class InsideBarBreakoutAdapter(BaseStrategy):
     def process(self, df, current_bar):
         if len(df) < 200: return
         try: logic_df = df.resample('15min').agg({'open':'first','high':'max','low':'min','close':'last','volume':'sum'}).dropna()
-        except: return
+        except Exception as e:
+             print(f" [IB-Adapter] Resample error: {e}")
+             return
         logic_df = logic_df.rename(columns={'open':'Open','high':'High','low':'Low','close':'Close','volume':'Volume'})
         signal = self.strategy.calculate_signal(logic_df)
         row = df.iloc[-1]

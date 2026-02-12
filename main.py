@@ -54,6 +54,10 @@ def initialize_engine():
         print(f"[INIT] Critical Startup Error: {e}", flush=True)
         traceback.print_exc()
         engine_ready = False
+        # Store error for Debug Endpoint
+        error_details = f"Error: {str(e)}\n\nTraceback:\n{traceback.format_exc()}"
+        app.config['STARTUP_ERROR'] = error_details
+        app.config['ENGINE_STATUS'] = 'FAILED'
 
 # Start engine initialization in background thread
 print("[MAIN] Starting background engine initialization...", flush=True)

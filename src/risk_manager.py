@@ -11,8 +11,8 @@ class RiskManager:
         try:
             account = self.api.get_account()
             self.starting_balance = float(account.equity)
-        except:
-            pass
+        except Exception as e:
+            print(f" [RISK] Could not get starting balance: {e}")
 
     def check_pnl_stops(self):
         """Checks daily PnL violations. Returns False if trading should stop."""

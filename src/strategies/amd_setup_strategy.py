@@ -180,8 +180,13 @@ class AMDSetupStrategy(BaseStrategy):
             match = re.search(r'NIFTY[A-Z0-9]+?(\d{5})(CE|PE)', pos['symbol'])
             
             if match and self.broker:
-                curr_premium = self.broker.fyers.get_option_chain(int(match.group(1)), match.group(2))
-                if not curr_premium: return
+                strike = int(match.group(1))
+                otype = match.group(2)
+                expiry = self.get_fyers_expiry_code()
+                curr_premium = self.broker.get_option_price(strike, otype, expiry)
+                if not curr_premium:
+                    self.status = f"Waiting for option price: {pos['symbol']}"
+                    return
                 
                 spot_stop = pos.get('spot_stop', 0)
                 current_spot = float(df['close'].iloc[-1])

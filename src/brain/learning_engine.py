@@ -130,7 +130,8 @@ class LearningEngine:
                 if self.state.get('cooling_off_until'):
                     try:
                         self.cooling_off_until = datetime.fromisoformat(self.state['cooling_off_until'])
-                    except:
+                    except Exception as e:
+                        self.logger.warning(f"Could not parse cooling_off_until: {e}")
                         self.cooling_off_until = None
                 
                 # Refresh insights from trade history

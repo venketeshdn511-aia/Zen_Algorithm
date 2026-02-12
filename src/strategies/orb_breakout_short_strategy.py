@@ -39,7 +39,8 @@ class ORBBreakoutShortStrategy(BaseStrategy):
                 # Try to convert index to datetime
                 try:
                     df.index = pd.to_datetime(df.index)
-                except:
+                except Exception as e:
+                    print(f" [ORB] Index datetime conversion error: {e}")
                     # Fallback: if 'datetime' column exists
                     if 'datetime' in df.columns:
                         df.index = pd.to_datetime(df['datetime'])
