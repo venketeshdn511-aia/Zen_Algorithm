@@ -118,9 +118,19 @@ class KotakBroker:
                         mobilenumber=self.MOBILE_NUMBER,
                         password=self.PASSWORD
                     )
+                    self.logger.info(f" Login result: {login_resp}")
+                    
                     # For automated trading, session_2fa might use MPIN or OTP
                     self.logger.info(" Initializing session with MPIN...")
-                    validate_resp = self.api.session_2fa(OTP=self.MPIN)
+                    try:
+                        # Try OTP uppercase first
+                        validate_resp = self.api.session_2fa(OTP=self.MPIN)
+                    except TypeError:
+                        # Fallback to otp lowercase
+                        self.logger.info(" Falling back to 'otp' lowercase parameter...")
+                        validate_resp = self.api.session_2fa(otp=self.MPIN)
+                    
+                    self.logger.info(f" 2FA result: {validate_resp}")
                 
                 # Older SDK or custom version might use totp_login
                 elif hasattr(self.api, 'totp_login'):
@@ -130,8 +140,15 @@ class KotakBroker:
                         ucc=self.UCC, 
                         totp=otp
                      )
-                     self.logger.info(" Validating MPIN...")
-                     validate_resp = self.api.totp_validate(mpin=self.MPIN)
+                     self.logger.info(f" Legacy Login result: {login_resp}")
+                     
+                     self.logger.info(" Validating MPIN (Legacy)...")
+                     # Legacy uses totp_validate
+                     if hasattr(self.api, 'totp_validate'):
+                        validate_resp = self.api.totp_validate(mpin=self.MPIN)
+                        self.logger.info(f" Legacy Validate result: {validate_resp}")
+                     else:
+                        validate_resp = login_resp # Some versions return everything in login_resp
                 
                 else:
                     methods = [m for m in dir(self.api) if not m.startswith('_')]
@@ -141,23 +158,11 @@ class KotakBroker:
 
             except Exception as e_login:
                 self.logger.error(f" Login Methodology Failure: {e_login}")
+                self.logger.error(traceback.format_exc())
                 self.connected = False
                 return
             
-            # Final result validation
-            if validate_resp and 'data' in validate_resp and 'token' in validate_resp['data']:
-                self.connected = True
-                self.logger.info(" Kotak Neo Connected Successfully!")
-            else:
-                self.logger.warning(f" Login result ambiguous: {validate_resp}")
-                # Some versions might consider success without token in data? No.
-                self.connected = False
-                return
-            
-            # Validate MPIN
-            self.logger.info(" Validating MPIN...")
-            validate_resp = self.api.totp_validate(mpin=self.MPIN)
-            
+            # Final result validation and Setup
             if validate_resp and 'data' in validate_resp and 'token' in validate_resp['data']:
                 self.connected = True
                 self.logger.info(" Kotak Neo Connected Successfully!")
@@ -167,13 +172,13 @@ class KotakBroker:
                 self.api.on_error = self.on_error
                 self.api.on_open = self.on_open
                 self.api.on_close = self.on_close
-                
             else:
-                self.logger.error(f" Login Failed: {validate_resp}")
+                self.logger.error(f" Login Failed or Ambiguous: {validate_resp}")
                 self.connected = False
                     
         except Exception as e:
             self.logger.error(f" Kotak Connection Critical Error: {e}")
+            self.logger.error(traceback.format_exc())
             self.connected = False
 
     def get_instrument_token(self, symbol, exchange_segment="nse_cm"):
