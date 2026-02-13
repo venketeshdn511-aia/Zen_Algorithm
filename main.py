@@ -14,7 +14,7 @@ load_dotenv()
 
 # NOTE: TradingEngine import is deferred to initialize_engine() to avoid
 # blocking Gunicorn startup with heavy module-level imports
-from src.api.server import app, init_app
+from src.api.server import app, init_app, socketio
 
 # Configure Logging
 logging.basicConfig(
@@ -109,7 +109,7 @@ init_thread = threading.Thread(target=initialize_engine, daemon=True, name='engi
 init_thread.start()
 
 # Expose app for Gunicorn immediately (even before engine is ready)
-application = app
+application = socketio
 
 def signal_handler(sig, frame):
     print(f"\n Signal {sig} received. Shutting down...")
@@ -128,8 +128,8 @@ def main():
         port = int(os.environ.get("PORT", 8080))
         print(f" Dashboard available at http://localhost:{port}")
         
-        # Disable Flask reloader to avoid duplicate threads
-        app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
+        # Use socketio.run instead of app.run for real-time support
+        socketio.run(app, host='0.0.0.0', port=port, debug=False, use_reloader=False)
     except Exception as e:
         print(f" Main Loop Error: {e}")
         traceback.print_exc()

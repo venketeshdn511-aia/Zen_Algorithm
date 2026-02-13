@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Filter, Play, Pause, ChevronDown, Binary, Zap, RefreshCw } from 'lucide-react';
 import StrategyCard from './StrategyCard';
 import { API_BASE_URL } from '../../utils/apiConfig';
+import socket from '../../utils/socket';
 
 const Strategies = ({ onOpenBlueprint, tradingMode }) => {
     const [searchQuery, setSearchQuery] = useState('');
@@ -12,6 +13,36 @@ const Strategies = ({ onOpenBlueprint, tradingMode }) => {
     const [strategies, setStrategies] = useState([]);
     const [totalStats, setTotalStats] = useState({ aum: 0, winRate: '0%', alpha: '0.00' });
 
+    const mapStrategies = React.useCallback((data, idxOffset = 0) => {
+        if (!data || !data.strategies) return [];
+        return data.strategies.map((s, idx) => {
+            const rawStatus = (s.status || '').toString();
+            const isActuallyActive =
+                rawStatus.toLowerCase().includes('active') ||
+                rawStatus.toLowerCase().includes('monitoring') ||
+                rawStatus.toLowerCase().includes('scanning') ||
+                rawStatus.toLowerCase().startsWith('nifty');
+
+            return {
+                id: s.id || idx + 1 + idxOffset,
+                name: s.name || 'Unknown Strategy',
+                profit: s.pnl || 0,
+                profitPct: s.pnl_pct || 0,
+                status: isActuallyActive ? 'Active' : rawStatus,
+                isPro: (s.pnl_pct || 0) > 10,
+                history: s.trades || [],
+                metrics: {
+                    winRate: `${s.win_rate || 0}%`,
+                    profitFactor: ((s.wins || 0) / (s.losses || 1) * 1.5).toFixed(2),
+                    maxDrawdown: (s.pnl_pct || 0) < 0 ? `${Math.abs(s.pnl_pct).toFixed(1)}%` : '0.0%',
+                    totalTrades: ((s.wins || 0) + (s.losses || 0)).toString()
+                },
+                thoughts: rawStatus || 'Waiting for signal...',
+                activeTrade: s.position || null
+            };
+        });
+    }, []);
+
     const fetchData = React.useCallback(async () => {
         setIsSyncing(true);
         try {
@@ -19,35 +50,7 @@ const Strategies = ({ onOpenBlueprint, tradingMode }) => {
             const data = await response.json();
 
             if (data && data.strategies) {
-                // Map backend strategies to frontend format with robust fallbacks
-                const mappedStrategies = data.strategies.map((s, idx) => {
-                    const rawStatus = (s.status || '').toString();
-                    const isActuallyActive =
-                        rawStatus.toLowerCase().includes('active') ||
-                        rawStatus.toLowerCase().includes('monitoring') ||
-                        rawStatus.toLowerCase().includes('scanning') ||
-                        rawStatus.toLowerCase().startsWith('nifty');
-
-                    return {
-                        id: s.id || idx + 1,
-                        name: s.name || 'Unknown Strategy',
-                        profit: s.pnl || 0,
-                        profitPct: s.pnl_pct || 0,
-                        status: isActuallyActive ? 'Active' : rawStatus,
-                        isPro: (s.pnl_pct || 0) > 10,
-                        history: s.trades || [],
-                        metrics: {
-                            winRate: `${s.win_rate || 0}%`,
-                            profitFactor: ((s.wins || 0) / (s.losses || 1) * 1.5).toFixed(2),
-                            maxDrawdown: (s.pnl_pct || 0) < 0 ? `${Math.abs(s.pnl_pct).toFixed(1)}%` : '0.0%',
-                            totalTrades: ((s.wins || 0) + (s.losses || 0)).toString()
-                        },
-                        thoughts: rawStatus || 'Waiting for signal...',
-                        activeTrade: s.position || null
-                    };
-                });
-
-                setStrategies(mappedStrategies);
+                setStrategies(mapStrategies(data));
                 setTotalStats({
                     aum: data.total_capital || 0,
                     winRate: `${data.total_win_rate || 0}%`,
@@ -60,13 +63,36 @@ const Strategies = ({ onOpenBlueprint, tradingMode }) => {
         } finally {
             setIsSyncing(false);
         }
-    }, [tradingMode]);
+    }, [tradingMode, mapStrategies]);
 
     React.useEffect(() => {
         fetchData();
-        const interval = setInterval(fetchData, 3000); // Sync every 3s for faster LTP updates
-        return () => clearInterval(interval);
-    }, [fetchData]);
+        const interval = setInterval(fetchData, 10000); // Polling as fallback
+
+        const onUpdate = (rawUpdate) => {
+            let data = rawUpdate;
+            if (rawUpdate.broadcast_mode === 'DUAL') {
+                data = rawUpdate[tradingMode.toUpperCase()] || rawUpdate['PAPER'];
+            }
+
+            if (data && data.strategies) {
+                setStrategies(mapStrategies(data));
+                setTotalStats({
+                    aum: data.total_capital || 0,
+                    winRate: `${data.total_win_rate || 0}%`,
+                    alpha: ((data.total_pnl_pct || 0) / 10).toFixed(2)
+                });
+                setIsLiveBotActive(!!data.running);
+            }
+        };
+
+        socket.on('stats_update', onUpdate);
+
+        return () => {
+            clearInterval(interval);
+            socket.off('stats_update', onUpdate);
+        };
+    }, [fetchData, mapStrategies]);
 
     const handleSync = () => {
         fetchData();

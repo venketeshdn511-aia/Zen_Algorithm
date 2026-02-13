@@ -8,6 +8,7 @@ import pytz
 import signal
 import traceback
 from datetime import datetime, timedelta
+from typing import List, Dict
 import pandas as pd
 
 # Local Imports
@@ -525,11 +526,24 @@ class TradingEngine:
                             print(f" [{now.strftime('%H:%M:%S')}] Warmup Mode (No Trade Entries)")
                             # We update indicators via fetch_data but skip strategy execution
                             self.save_state()
+                            self.save_state()
                             continue
 
                         self.run_strategies()
                         self.update_live_positions()
                         self.save_state()
+                        # Emit real-time stats update via WebSocket for both modes
+                        try:
+                            from src.api.server import emit_stats_update
+                            stats_paper = self.get_portfolio_stats(mode='PAPER')
+                            stats_real = self.get_portfolio_stats(mode='REAL')
+                            emit_stats_update({
+                                'PAPER': stats_paper,
+                                'REAL': stats_real,
+                                'broadcast_mode': 'DUAL'
+                            })
+                        except Exception as e:
+                            pass # Fail silently if server not ready
                     else:
                         if loop_count % 8 == 0: print(f" [{now.strftime('%H:%M:%S')}] Data fetch failed")
                 else:
@@ -641,6 +655,12 @@ class TradingEngine:
                 print(f" [API] Failed to get stats for strategy {s.name}: {e}")
         
         return portfolio_stats
+
+    def get_ai_insights(self) -> List[Dict]:
+        """Fetch AI Trade Post-Mortems from brain"""
+        if self.brain:
+            return self.brain.get_insights().get('ai_insights', [])
+        return []
 
     def reset_portfolio_state(self):
         self.running = False

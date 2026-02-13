@@ -17,6 +17,7 @@ from .bayesian_learner import BayesianPatternLearner
 from .strategy_correlator import StrategyCorrelator
 from .optimizer import ParameterOptimizer
 from .ml_predictor import MLPredictor
+from .ai_post_mortem import AiPostMortem
 
 
 class LearningEngine:
@@ -73,6 +74,7 @@ class LearningEngine:
         self.correlator = StrategyCorrelator(logger=self.logger)
         self.optimizer = ParameterOptimizer(logger=self.logger)
         self.ml_predictor = MLPredictor(logger=self.logger)
+        self.ai_analyzer = AiPostMortem(logger=self.logger)
         
         # State
         self.state = self._default_state()
@@ -99,6 +101,7 @@ class LearningEngine:
                 'strategy_adjustments': {}
             },
             'trade_history': [],  # Last N trades for analysis
+            'ai_insights': [],    # Feed of AI Post-Mortems
             'daily_stats': {},
             'cooling_off_until': None
         }
@@ -238,6 +241,18 @@ class LearningEngine:
         # Update strategy-specific adjustments
         self._update_strategy_adjustments(trade)
         
+        # Trigger AI Post-Mortem (Async-like feel)
+        if self.ai_analyzer.enabled:
+            insight = self.ai_analyzer.analyze_trade(trade)
+            if insight:
+                insight['strategy'] = trade.get('strategy')
+                insight['timestamp'] = trade.get('exit_time')
+                insight['pnl'] = trade.get('pnl')
+                self.state['ai_insights'].append(insight)
+                if len(self.state['ai_insights']) > 50:
+                    self.state['ai_insights'] = self.state['ai_insights'][-50:]
+                trade['ai_insight'] = insight
+
         # Save state
         self.save_state()
         

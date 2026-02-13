@@ -5,6 +5,7 @@ import AIBrain from '../ai/AIBrain';
 import { motion } from 'framer-motion';
 import { ArrowUpRight, TrendingUp, Cpu, Globe } from 'lucide-react';
 import { API_BASE_URL } from '../../utils/apiConfig';
+import socket from '../../utils/socket';
 
 const Dashboard = ({ onOpenBlueprint, tradingMode }) => {
     const [liveEquity, setLiveEquity] = useState(0);
@@ -75,8 +76,44 @@ const Dashboard = ({ onOpenBlueprint, tradingMode }) => {
         };
 
         fetchData();
-        const interval = setInterval(fetchData, 3000); // Faster polling for live updates
-        return () => clearInterval(interval);
+        const interval = setInterval(fetchData, 10000); // Polling as fallback (now slower)
+
+        // Real-time WebSocket updates
+        const onUpdate = (rawUpdate) => {
+            console.log(" [WS] Received update:", rawUpdate);
+
+            // Detect if it's a dual-mode broadcast or legacy single-mode
+            let data = rawUpdate;
+            if (rawUpdate.broadcast_mode === 'DUAL') {
+                data = rawUpdate[tradingMode.toUpperCase()] || rawUpdate['PAPER'];
+            }
+
+            const safeData = {
+                total_capital: data.total_capital || 0,
+                total_pnl_pct: data.total_pnl_pct || 0,
+                equity_curve: data.equity_curve || [],
+                recent_trades: data.recent_trades || [],
+                strategies: data.strategies || [],
+                running: !!data.running
+            };
+
+            if (safeData.total_capital !== prevStateRef.current.total_capital) setLiveEquity(safeData.total_capital);
+            if (safeData.total_pnl_pct !== prevStateRef.current.total_pnl_pct) setPnlPct(safeData.total_pnl_pct);
+            if (JSON.stringify(safeData.equity_curve) !== JSON.stringify(prevStateRef.current.equity_curve)) setEquityCurve(safeData.equity_curve);
+            if (JSON.stringify(safeData.recent_trades) !== JSON.stringify(prevStateRef.current.recent_trades)) setRecentTrades(safeData.recent_trades);
+            if (JSON.stringify(safeData.strategies) !== JSON.stringify(prevStateRef.current.strategies)) setStrategies(safeData.strategies);
+            if (safeData.running !== prevStateRef.current.running) setIsMasterLive(safeData.running);
+
+            prevStateRef.current = safeData;
+            setLastUpdate(new Date().toLocaleTimeString());
+        };
+
+        socket.on('stats_update', onUpdate);
+
+        return () => {
+            clearInterval(interval);
+            socket.off('stats_update', onUpdate);
+        };
     }, [tradingMode]);
 
     const pathData = useMemo(() => {

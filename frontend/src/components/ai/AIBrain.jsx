@@ -30,6 +30,18 @@ const AIBrain = () => {
                         mapped.push({ title: 'Drawdown Alert', desc: 'Current cluster of losses detected. System in defensive mode.', status: 'ALERT' });
                     }
 
+                    // Add AI Post-Mortems from Gemini
+                    if (data.ai_insights && data.ai_insights.length > 0) {
+                        data.ai_insights.slice().reverse().forEach(ins => {
+                            mapped.push({
+                                title: `Post-Mortem: ${ins.strategy}`,
+                                desc: ins.summary + " | AI Diagnosis: " + ins.diagnosis + " | Insight: " + ins.insight,
+                                status: 'AI',
+                                vibe: ins.vibe
+                            });
+                        });
+                    }
+
                     setInsights(mapped.length > 0 ? mapped : [{ title: 'Scanning Patterns', desc: 'Analyzing live flow for regime shifts. No immediate adjustments needed.', status: 'INFO' }]);
                 } else {
                     setInsights([{ title: 'Initial Calibration', desc: 'Intelligence engine is observing market micro-structure. Learning in progress.', status: 'INFO' }]);
@@ -51,6 +63,7 @@ const AIBrain = () => {
             case 'ALERT': return 'text-[#ff3b30]';
             case 'ACTION': return 'text-[#007aff]';
             case 'HEDGE': return 'text-[#af52de]';
+            case 'AI': return 'text-[#ffcc00]';
             default: return 'text-[#34c759]';
         }
     };
@@ -74,7 +87,9 @@ const AIBrain = () => {
                     >
                         <div className="mt-1.5 w-2 h-2 rounded-full bg-current shrink-0 animate-pulse" style={{ color: getStatusColor(insight.status).replace('text-', '').replace('[', '').replace(']', '') }} />
                         <div className="space-y-1">
-                            <h4 className={`text-[11px] font-black uppercase tracking-widest ${getStatusColor(insight.status)}`}>{insight.title}</h4>
+                            <h4 className={`text-[11px] font-black uppercase tracking-widest ${getStatusColor(insight.status)}`}>
+                                {insight.title} {insight.vibe && <span className="ml-2 text-[var(--text-muted)]">- {insight.vibe}</span>}
+                            </h4>
                             <p className="text-[16px] text-[var(--text-color)] opacity-90 font-medium leading-relaxed group-hover:opacity-100 transition-opacity">{insight.desc}</p>
                         </div>
                     </motion.div>

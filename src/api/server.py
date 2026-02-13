@@ -1,5 +1,6 @@
 from flask import Flask, render_template, jsonify, request, send_file, send_from_directory
 from flask_cors import CORS
+from flask_socketio import SocketIO, emit
 from fpdf import FPDF
 import pandas as pd
 import requests
@@ -28,6 +29,10 @@ app = Flask(__name__,
             static_folder=STATIC_DIR,
             static_url_path='')
 CORS(app) # Enable CORS for all routes
+
+# Initialize SocketIO
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+
 engine_ref = None
 
 # Lazy-initialized integrations (deferred to avoid blocking Gunicorn startup)
@@ -81,6 +86,13 @@ def get_engine():
 @app.route('/healthz')
 def health_check():
     return jsonify({"status": "ok"}), 200
+
+def emit_stats_update(data):
+    """Broadcasting real-time stats to all connected clients"""
+    try:
+        socketio.emit('stats_update', data)
+    except Exception as e:
+        print(f" [WS] Failed to emit update: {e}")
 
 @app.route('/api/stats')
 def get_stats():
