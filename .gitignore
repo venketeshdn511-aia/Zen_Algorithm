@@ -14,3 +14,11 @@ venv.bak/
 .DS_Store
 .vscode/
 .idea/
+
+# Local State & Data
+data/
+stats*.json
+strategy_state.json
+startup_*.log
+*.pyc
+__pycache__/

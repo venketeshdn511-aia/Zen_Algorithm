@@ -237,6 +237,9 @@ class KotakBroker:
                     self.api.on_error = self.on_error
                     self.api.on_open = self.on_open
                     self.api.on_close = self.on_close
+                    
+                    # Auto-start WebSocket for live price streaming
+                    self.start_websocket()
                 else:
                     self.logger.error(f" Login Failed - no token in response: {validate_resp}")
                     self.connected = False
@@ -251,6 +254,38 @@ class KotakBroker:
             except Exception:
                 self.logger.error(f" (traceback unavailable)")
             self.connected = False
+    
+    def start_websocket(self):
+        """Start WebSocket connection and subscribe to key instruments for live pricing"""
+        if not self.connected or not self.api:
+            self.logger.warning("Cannot start WebSocket - broker not connected")
+            return
+        
+        try:
+            # Subscribe to Nifty 50 Index (token 26000) for live spot price
+            nifty_token = "26000"
+            self.logger.info(" Starting WebSocket + subscribing to Nifty 50...")
+            self.subscribe_symbol(nifty_token, "nse_cm")
+            self.logger.info(" WebSocket started, Nifty 50 subscribed")
+        except Exception as e:
+            self.logger.error(f" WebSocket startup failed: {e}")
+    
+    def subscribe_active_positions(self, strategies):
+        """Subscribe to WebSocket feeds for all symbols with active positions"""
+        if not self.connected:
+            return
+        
+        for strategy in strategies:
+            if strategy.position:
+                symbol = strategy.position.get('symbol', '')
+                if symbol and symbol not in self.subscribed_tokens:
+                    try:
+                        mapping = self.get_instrument_token(symbol)
+                        if mapping:
+                            self.subscribe_symbol(mapping['token'], mapping['segment'])
+                            self.logger.info(f" Subscribed to position symbol: {symbol}")
+                    except Exception as e:
+                        self.logger.error(f" Subscribe position {symbol} failed: {e}")
 
     def get_instrument_token(self, symbol, exchange_segment="nse_cm"):
         """

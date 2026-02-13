@@ -51,18 +51,44 @@ except ImportError:
 
 DATA_FILE = 'strategy_state.json'
 
+class _StubBroker:
+    """Minimal broker stub used when KotakBroker fails to init.
+    Prevents crashes while keeping strategies visible."""
+    connected = False
+    def connect(self): pass
+    def get_real_balance(self): return 0.0
+    def get_account_balance(self): return 0.0
+    def get_current_price(self, *a, **kw): return None
+    def get_latest_bars(self, *a, **kw): return None
+    def get_atm_strike(self, spot): return round(spot / 50) * 50
+    def get_option_price(self, *a, **kw): return 0.0
+    def place_order(self, *a, **kw): return None
+    def get_positions(self): return []
+    def close_position(self, *a): pass
+    def close_all_positions(self): pass
+    def check_token_health(self): return {"status": "error", "message": "Stub broker"}
+    def prime_aggregator(self, *a, **kw): pass
+    def subscribe_symbol(self, *a, **kw): pass
+    def start_websocket(self): pass
+
 class TradingEngine:
     def __init__(self):
         self.lock = threading.Lock()
-        # Initialize Kotak Broker (REAL TRADING)
-        self.broker = KotakBroker()
-        print(" [WARNING] REAL TRADING MODE ACTIVE ")
         
-        # Initialize only the requested strategies
+        # Initialize Kotak Broker (REAL TRADING) — crash-proof
+        try:
+            self.broker = KotakBroker()
+            print(" [WARNING] REAL TRADING MODE ACTIVE ")
+        except Exception as e:
+            print(f"[INIT] KotakBroker creation failed: {e}. Using stub broker.", flush=True)
+            self.broker = _StubBroker()
+        
+        # Initialize strategies regardless of broker state
         self.strategies = [
             FailedAuctionStrategy(broker=self.broker),
             AMDSetupStrategy(broker=self.broker)
         ]
+        print(f"[INIT] {len(self.strategies)} strategies initialized.", flush=True)
         
         self.df = None
         self.last_update = None
@@ -84,7 +110,11 @@ class TradingEngine:
         print("[INIT] Initializing Market Regime Governor...")
         # Use Fyers broker for regime detection if available, otherwise use Kotak broker
         regime_broker = self.history_broker if self.history_broker else self.broker
-        self.governor = MarketRegimeGovernor(regime_broker)
+        try:
+            self.governor = MarketRegimeGovernor(regime_broker)
+        except Exception as e:
+            print(f"[INIT] MarketRegimeGovernor failed: {e}. Using default.", flush=True)
+            self.governor = MarketRegimeGovernor(self.broker)
         
         # Strategy Regime Mapping
         self.strategy_regimes = {}
@@ -155,9 +185,17 @@ class TradingEngine:
     def update_live_positions(self):
         """
         Active polling for open positions.
-        Fetches latest LTP from Broker and checks for Exits.
+        Fetches latest LTP from Broker (WS Cache first, REST fallback) and checks for Exits.
+        Also ensures all active position symbols are subscribed to WebSocket.
         """
         if not self.running: return
+
+        # Subscribe all active position symbols to WebSocket for real-time updates
+        if hasattr(self.broker, 'subscribe_active_positions'):
+            try:
+                self.broker.subscribe_active_positions(self.strategies)
+            except Exception as e:
+                print(f" [WS] Position subscription error: {e}")
 
         # Loop through strategies
         for strategy in self.strategies:
@@ -165,7 +203,7 @@ class TradingEngine:
                 symbol = strategy.position.get('symbol')
                 if not symbol: continue
                 
-                # Fetch live price via REST (Active Polling)
+                # Fetch live price (WS cache first, REST fallback)
                 ltp = self.broker.get_current_price(symbol)
                 
                 if ltp and ltp > 0:
@@ -173,7 +211,6 @@ class TradingEngine:
                     strategy.position['ltp'] = ltp
                     
                     # Check for Exits (Target / SL)
-                    # Re-use the existing logic
                     self.check_fast_exits(symbol, ltp)
                     
                     # Update Trailing Stops if applicable
@@ -570,26 +607,40 @@ class TradingEngine:
         total_trades = total_wins + total_losses
         total_win_rate = (total_wins / total_trades * 100) if total_trades > 0 else 0
         
-        return {
+        # Safeguards for final return values
+        total_capital = float(total_capital) if total_capital is not None else 0.0
+        total_initial = float(total_initial) if total_initial is not None else 0.0
+        total_pnl = float(total_pnl) if total_pnl is not None else 0.0
+        total_pnl_pct = float(total_pnl_pct) if total_pnl_pct is not None else 0.0
+        
+        portfolio_stats = {
             'total_capital': round(total_capital, 2),
             'total_initial': round(total_initial, 2),
             'total_pnl': round(total_pnl, 2),
-            'total_today_pnl': round(total_today_pnl, 2),
+            'total_today_pnl': round(float(total_today_pnl), 2),
             'total_pnl_pct': round(total_pnl_pct, 2),
-            'total_wins': total_wins,
-            'total_losses': total_losses,
-            'total_trades': total_trades,
-            'total_win_rate': round(total_win_rate, 1),
+            'total_wins': int(total_wins),
+            'total_losses': int(total_losses),
+            'total_trades': int(total_trades),
+            'total_win_rate': round(float(total_win_rate), 1),
             'equity_curve': equity_curve,
-            'recent_trades': recent_trades[:10], # Top 10 for dashboard
+            'recent_trades': recent_trades[:10],
             'last_update': self.last_update.isoformat() if self.last_update else datetime.now().isoformat(),
             'running': self.running,
-            'regime': self.governor.get_regime_status(),
-            'strategies': [
-                {**s.get_stats(), 'override_status': self.strategy_overrides.get(s.name, 'AUTO')} 
-                for s in self.strategies
-            ]
+            'broker_connected': self.broker.connected if self.broker else False,
+            'regime': self.governor.get_regime_status() if self.governor else "NEUTRAL",
+            'strategies': []
         }
+
+        for s in self.strategies:
+            try:
+                stats = s.get_stats()
+                stats['override_status'] = self.strategy_overrides.get(s.name, 'AUTO')
+                portfolio_stats['strategies'].append(stats)
+            except Exception as e:
+                print(f" [API] Failed to get stats for strategy {s.name}: {e}")
+        
+        return portfolio_stats
 
     def reset_portfolio_state(self):
         self.running = False

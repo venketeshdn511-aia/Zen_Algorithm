@@ -96,7 +96,9 @@ def get_stats():
             'running': False
         })
     mode = request.args.get('mode', 'PAPER').upper()
-    return jsonify(engine.get_portfolio_stats(mode=mode))
+    stats = engine.get_portfolio_stats(mode=mode)
+    print(f" [API] stats response: strategies={len(stats.get('strategies', []))}, total_capital={stats.get('total_capital')}, running={stats.get('running')}")
+    return jsonify(stats)
 
 @app.route('/api/brain')
 def get_brain_data():
@@ -112,18 +114,28 @@ def get_brain_data():
 def get_balance():
     try:
         engine = get_engine()
+        if engine is None:
+            return jsonify({'status': 'initializing', 'balance': 0, 'message': 'Engine starting...'})
+        
         mode = request.args.get('mode', 'PAPER').upper()
         
         if mode == 'REAL':
             if not engine.broker.connected:
-                engine.broker.connect()
+                try:
+                    engine.broker.connect()
+                except Exception:
+                    pass  # Auto-reconnect thread will handle this
             balance = engine.broker.get_real_balance()
         else:
             balance = engine.broker.get_account_balance()
             
-        return jsonify({'status': 'success', 'balance': balance})
+        return jsonify({
+            'status': 'success', 
+            'balance': balance,
+            'broker_connected': engine.broker.connected
+        })
     except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        return jsonify({'status': 'error', 'message': str(e), 'balance': 0}), 500
 
 @app.route('/api/history')
 def get_history():

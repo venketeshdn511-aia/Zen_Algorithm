@@ -75,35 +75,39 @@ const StrategyCard = ({ name, profit, profitPct, status, isPro, history = [0, 10
                         </div>
 
                         {activeTrade ? (
-                            /* Active Trade Panel */
+                            /* Active Trade Panel — Redesigned for clarity */
                             <div className="bg-[var(--apple-blue)]/5 border border-[var(--apple-blue)]/20 rounded-xl p-3 mb-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
                                 <div className="flex justify-between items-center mb-2">
                                     <span className="text-[9px] font-black text-[var(--apple-blue)] uppercase tracking-widest">Active Execution</span>
                                     <span className="text-[10px] font-bold text-[var(--text-color)]">{activeTrade.strike}</span>
                                 </div>
-                                <div className="grid grid-cols-4 gap-2 text-center">
-                                    <div>
-                                        <p className="text-[7px] text-[var(--text-muted)] uppercase font-bold">Entry</p>
-                                        <div className="text-[10px] font-black">
-                                            <AnimatedNumber value={parseFloat(activeTrade.entry)} precision={2} />
+                                {/* Row 1: Entry + LTP */}
+                                <div className="grid grid-cols-2 gap-3 mb-2">
+                                    <div className="text-center">
+                                        <p className="text-[8px] text-[var(--text-muted)] uppercase font-bold mb-0.5">Entry</p>
+                                        <div className="text-xs font-black text-[var(--text-color)]">
+                                            <AnimatedNumber value={parseFloat(activeTrade.entry || 0)} precision={1} />
                                         </div>
                                     </div>
-                                    <div>
-                                        <p className="text-[7px] text-[var(--text-muted)] uppercase font-bold text-[var(--apple-red)]">SL</p>
-                                        <div className="text-[10px] font-black text-[var(--apple-red)]">
-                                            <AnimatedNumber value={parseFloat(activeTrade.sl)} precision={2} />
+                                    <div className="text-center bg-[var(--apple-blue)]/10 rounded-lg py-1.5">
+                                        <p className="text-[8px] text-[var(--apple-blue)] uppercase font-bold mb-0.5 animate-pulse">LTP</p>
+                                        <div className="text-xs font-black text-[var(--apple-blue)]">
+                                            <AnimatedNumber value={parseFloat(activeTrade.ltp || activeTrade.entry || 0)} precision={1} />
                                         </div>
                                     </div>
-                                    <div>
-                                        <p className="text-[7px] text-[var(--text-muted)] uppercase font-bold text-[var(--apple-green)]">TGT</p>
-                                        <div className="text-[10px] font-black text-[var(--apple-green)]">
-                                            <AnimatedNumber value={parseFloat(activeTrade.target)} precision={2} />
+                                </div>
+                                {/* Row 2: SL + TGT */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="text-center">
+                                        <p className="text-[8px] text-[var(--apple-red)] uppercase font-bold mb-0.5">Stop Loss</p>
+                                        <div className="text-xs font-black text-[var(--apple-red)]">
+                                            <AnimatedNumber value={parseFloat(activeTrade.sl || 0)} precision={1} />
                                         </div>
                                     </div>
-                                    <div className="bg-[var(--apple-blue)]/10 rounded-lg py-1">
-                                        <p className="text-[7px] text-[var(--apple-blue)] uppercase font-bold pulse">LTP</p>
-                                        <div className="text-[10px] font-black text-[var(--apple-blue)]">
-                                            <AnimatedNumber value={parseFloat(activeTrade.ltp)} precision={2} />
+                                    <div className="text-center">
+                                        <p className="text-[8px] text-[var(--apple-green)] uppercase font-bold mb-0.5">Target</p>
+                                        <div className="text-xs font-black text-[var(--apple-green)]">
+                                            <AnimatedNumber value={parseFloat(activeTrade.target || 0)} precision={1} />
                                         </div>
                                     </div>
                                 </div>

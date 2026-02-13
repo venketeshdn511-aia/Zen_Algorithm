@@ -18,32 +18,42 @@ const Strategies = ({ onOpenBlueprint, tradingMode }) => {
             const response = await fetch(`${API_BASE_URL}/api/stats?mode=${tradingMode}`);
             const data = await response.json();
 
-            if (data.strategies) {
-                // Map backend strategies to frontend format
-                const mappedStrategies = data.strategies.map((s, idx) => ({
-                    id: idx + 1,
-                    name: s.name,
-                    profit: s.pnl,
-                    profitPct: s.pnl_pct,
-                    status: (s.status === 'Monitoring...' || s.status === 'Scanning alpha vectors...' || s.status?.startsWith('Nifty:')) ? 'Active' : s.status,
-                    isPro: s.pnl_pct > 10,
-                    history: s.trades || [], // Full trade objects for analytics
-                    metrics: {
-                        winRate: `${s.win_rate}%`,
-                        profitFactor: (s.wins / (s.losses || 1) * 1.5).toFixed(2), // ContextualPF
-                        maxDrawdown: s.pnl_pct < 0 ? `${Math.abs(s.pnl_pct).toFixed(1)}%` : '0.0%',
-                        totalTrades: (s.wins + s.losses).toString()
-                    },
-                    thoughts: s.status,
-                    activeTrade: s.position
-                }));
+            if (data && data.strategies) {
+                // Map backend strategies to frontend format with robust fallbacks
+                const mappedStrategies = data.strategies.map((s, idx) => {
+                    const rawStatus = (s.status || '').toString();
+                    const isActuallyActive =
+                        rawStatus.toLowerCase().includes('active') ||
+                        rawStatus.toLowerCase().includes('monitoring') ||
+                        rawStatus.toLowerCase().includes('scanning') ||
+                        rawStatus.toLowerCase().startsWith('nifty');
+
+                    return {
+                        id: s.id || idx + 1,
+                        name: s.name || 'Unknown Strategy',
+                        profit: s.pnl || 0,
+                        profitPct: s.pnl_pct || 0,
+                        status: isActuallyActive ? 'Active' : rawStatus,
+                        isPro: (s.pnl_pct || 0) > 10,
+                        history: s.trades || [],
+                        metrics: {
+                            winRate: `${s.win_rate || 0}%`,
+                            profitFactor: ((s.wins || 0) / (s.losses || 1) * 1.5).toFixed(2),
+                            maxDrawdown: (s.pnl_pct || 0) < 0 ? `${Math.abs(s.pnl_pct).toFixed(1)}%` : '0.0%',
+                            totalTrades: ((s.wins || 0) + (s.losses || 0)).toString()
+                        },
+                        thoughts: rawStatus || 'Waiting for signal...',
+                        activeTrade: s.position || null
+                    };
+                });
+
                 setStrategies(mappedStrategies);
                 setTotalStats({
-                    aum: data.total_capital,
-                    winRate: `${data.total_win_rate}%`,
-                    alpha: (data.total_pnl_pct / 10).toFixed(2)
+                    aum: data.total_capital || 0,
+                    winRate: `${data.total_win_rate || 0}%`,
+                    alpha: ((data.total_pnl_pct || 0) / 10).toFixed(2)
                 });
-                setIsLiveBotActive(data.running);
+                setIsLiveBotActive(!!data.running);
             }
         } catch (err) {
             console.error("Strategies sync error:", err);
@@ -54,7 +64,7 @@ const Strategies = ({ onOpenBlueprint, tradingMode }) => {
 
     React.useEffect(() => {
         fetchData();
-        const interval = setInterval(fetchData, 10000); // Sync every 10s
+        const interval = setInterval(fetchData, 3000); // Sync every 3s for faster LTP updates
         return () => clearInterval(interval);
     }, [fetchData]);
 

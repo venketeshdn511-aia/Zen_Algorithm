@@ -39,27 +39,35 @@ const Dashboard = ({ onOpenBlueprint, tradingMode }) => {
 
                 setPing(Math.round(end - start));
 
-                // Shallow compare before setting states to prevent unnecessary re-renders
-                if (data.total_capital !== undefined && data.total_capital !== prevStateRef.current.total_capital) {
-                    setLiveEquity(data.total_capital);
+                const safeData = {
+                    total_capital: data.total_capital || 0,
+                    total_pnl_pct: data.total_pnl_pct || 0,
+                    equity_curve: data.equity_curve || [],
+                    recent_trades: data.recent_trades || [],
+                    strategies: data.strategies || [],
+                    running: !!data.running
+                };
+
+                if (safeData.total_capital !== prevStateRef.current.total_capital) {
+                    setLiveEquity(safeData.total_capital);
                 }
-                if (data.total_pnl_pct !== undefined && data.total_pnl_pct !== prevStateRef.current.total_pnl_pct) {
-                    setPnlPct(data.total_pnl_pct);
+                if (safeData.total_pnl_pct !== prevStateRef.current.total_pnl_pct) {
+                    setPnlPct(safeData.total_pnl_pct);
                 }
-                if (JSON.stringify(data.equity_curve) !== JSON.stringify(prevStateRef.current.equity_curve)) {
-                    setEquityCurve(data.equity_curve || []);
+                if (JSON.stringify(safeData.equity_curve) !== JSON.stringify(prevStateRef.current.equity_curve)) {
+                    setEquityCurve(safeData.equity_curve);
                 }
-                if (JSON.stringify(data.recent_trades) !== JSON.stringify(prevStateRef.current.recent_trades)) {
-                    setRecentTrades(data.recent_trades || []);
+                if (JSON.stringify(safeData.recent_trades) !== JSON.stringify(prevStateRef.current.recent_trades)) {
+                    setRecentTrades(safeData.recent_trades);
                 }
-                if (JSON.stringify(data.strategies) !== JSON.stringify(prevStateRef.current.strategies)) {
-                    setStrategies(data.strategies || []);
+                if (JSON.stringify(safeData.strategies) !== JSON.stringify(prevStateRef.current.strategies)) {
+                    setStrategies(safeData.strategies);
                 }
-                if (data.running !== undefined && data.running !== prevStateRef.current.running) {
-                    setIsMasterLive(data.running);
+                if (safeData.running !== prevStateRef.current.running) {
+                    setIsMasterLive(safeData.running);
                 }
 
-                prevStateRef.current = data;
+                prevStateRef.current = safeData;
                 setLastUpdate(new Date().toLocaleTimeString());
             } catch (err) {
                 console.error("Dashboard sync error:", err);
@@ -67,7 +75,7 @@ const Dashboard = ({ onOpenBlueprint, tradingMode }) => {
         };
 
         fetchData();
-        const interval = setInterval(fetchData, 5000);
+        const interval = setInterval(fetchData, 3000); // Faster polling for live updates
         return () => clearInterval(interval);
     }, [tradingMode]);
 
