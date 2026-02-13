@@ -97,7 +97,6 @@ def get_stats():
         })
     mode = request.args.get('mode', 'PAPER').upper()
     stats = engine.get_portfolio_stats(mode=mode)
-    print(f" [API] stats response: strategies={len(stats.get('strategies', []))}, total_capital={stats.get('total_capital')}, running={stats.get('running')}")
     return jsonify(stats)
 
 @app.route('/api/brain')
