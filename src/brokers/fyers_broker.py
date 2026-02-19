@@ -80,6 +80,13 @@ class FyersBroker:
             self.refresh_token = new_refresh_token
             # Update env for current session
             os.environ['FYERS_REFRESH_TOKEN'] = new_refresh_token
+            # Persist refresh token to file so it survives restarts
+            try:
+                with open('.fyers_refresh_token', 'w') as f:
+                    f.write(new_refresh_token)
+                self.logger.info("Refresh token saved to .fyers_refresh_token")
+            except Exception as e:
+                self.logger.warning(f"Could not save refresh token to file: {e}")
             
         return new_access_token
 
@@ -254,36 +261,15 @@ class FyersBroker:
                                 self.logger.warning(f"Token verification error (attempt): {e}")
                                 if attempt < max_retries - 1: time.sleep(1)
             
-            # Priority 2: Try to load saved token file
-            self.logger.info(" Priority 2: Check Local Token File")
-            if os.path.exists('.fyers_token'):
-                with open('.fyers_token', 'r') as f:
-                    self.access_token = f.read().strip()
-                
-                self.api = fyersModel.FyersModel(
-                    client_id=app_id,
-                    token=self.access_token,
-                    log_path=""
-                )
-                
-                # Verify token validity
-                try:
-                    test_response = self.api.get_profile()
-                    if test_response.get('s') == 'ok':
-                        self.connected = True
-                        self.logger.info(f" Connected to Fyers API (using saved token)")
-                        return
-                except Exception as e:
-                    self.logger.warning(f"Saved token expired or invalid: {e}")
-            
-            # Priority 3: Try to load from MongoDB (Cloud Persistence)
-            self.logger.info(" Priority 3: Check MongoDB Token")
+            # Priority 2: Try to load from MongoDB (Cloud Persistence)
+            # NOTE: Priority 2 was previously re-reading .fyers_token which was already
+            # tried in Priority 1. Skipping redundant file read.
+            self.logger.info(" Priority 2: Check MongoDB Token")
             if not self.connected and self.db_handler and self.db_handler.connected:
                 try:
                     conf = self.db_handler.db["system_config"].find_one({"_id": "fyers_session"})
                     if conf and conf.get('access_token'):
                         self.access_token = conf['access_token']
-                        app_id_clean = app_id.replace("-100", "") if app_id else ""
                         self.api = fyersModel.FyersModel(
                             client_id=app_id,
                             token=self.access_token,
@@ -297,8 +283,45 @@ class FyersBroker:
                 except Exception as e:
                     self.logger.warning(f"MongoDB token load failed: {e}")
             
-            # Final Fallback: Manual Login Alert
+            # Priority 3: Full auto-login as final fallback
             if not self.connected:
+                self.logger.info(" Priority 3: Attempting full auto-login...")
+                try:
+                    new_access_token, new_refresh_token = fyers_auto_login.auto_login()
+                    if new_access_token:
+                        self.access_token = new_access_token
+                        self.refresh_token = new_refresh_token
+                        self.api = fyersModel.FyersModel(
+                            client_id=app_id,
+                            token=self.access_token,
+                            log_path=""
+                        )
+                        test_response = self.api.get_profile()
+                        if test_response.get('s') == 'ok':
+                            self.connected = True
+                            self.logger.info(" Connected via auto-login!")
+                            # Persist tokens
+                            os.environ['FYERS_ACCESS_TOKEN'] = self.access_token
+                            try:
+                                with open('.fyers_token', 'w') as f:
+                                    f.write(self.access_token)
+                            except Exception:
+                                pass
+                            if new_refresh_token:
+                                os.environ['FYERS_REFRESH_TOKEN'] = new_refresh_token
+                                try:
+                                    with open('.fyers_refresh_token', 'w') as f:
+                                        f.write(new_refresh_token)
+                                except Exception:
+                                    pass
+                            return
+                        else:
+                            self.logger.warning(f" Auto-login token verification failed: {test_response}")
+                    else:
+                        self.logger.warning(" Auto-login returned no token")
+                except Exception as e:
+                    self.logger.error(f" Auto-login failed: {e}")
+                
                 self.logger.error(" ALL CONNECTION METHODS FAILED. MANUAL LOGIN REQUIRED.")
                 
         except Exception as e:

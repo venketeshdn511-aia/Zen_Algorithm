@@ -37,6 +37,7 @@ class BaseStrategy:
         self.status = "Monitoring..."
         self.paused = False
         self.allowed_regimes = ['ALL']
+        self.broker = None  # Set by subclass or trading engine
         
     def get_fyers_expiry_code(self):
         return get_next_nifty_expiry()

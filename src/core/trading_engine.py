@@ -526,7 +526,6 @@ class TradingEngine:
                             print(f" [{now.strftime('%H:%M:%S')}] Warmup Mode (No Trade Entries)")
                             # We update indicators via fetch_data but skip strategy execution
                             self.save_state()
-                            self.save_state()
                             continue
 
                         self.run_strategies()
@@ -549,7 +548,7 @@ class TradingEngine:
                 else:
                     if loop_count % 20 == 0: print(f"[{now.strftime('%H:%M:%S')}] Outside market hours")
                 
-                for _ in range(15):
+                for _ in range(5):  # Reduced from 15s to 5s for lower latency
                     if not self.running: break
                     time.sleep(1)
             except Exception as e:
@@ -658,8 +657,8 @@ class TradingEngine:
 
     def get_ai_insights(self) -> List[Dict]:
         """Fetch AI Trade Post-Mortems from brain"""
-        if self.brain:
-            return self.brain.get_insights().get('ai_insights', [])
+        if brain:
+            return brain.get_insights().get('ai_insights', [])
         return []
 
     def reset_portfolio_state(self):
@@ -721,7 +720,7 @@ class TradingEngine:
                     # Try to get current price from broker
                     if symbol and self.broker:
                         try:
-                            current_price = self.broker.get_current_price(symbol, entry_price)
+                            current_price = self.broker.get_current_price(symbol)
                             if not current_price:
                                 current_price = entry_price
                                 print(f"⚠️  Could not fetch current price for {symbol}, using entry price")

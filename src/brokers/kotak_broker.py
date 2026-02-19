@@ -381,7 +381,7 @@ class KotakBroker:
                     return self.ltp_cache[token]
                 time.sleep(0.2)
             self.logger.warning(f"WS Data Timeout for {symbol} ({token})")
-            return 0.0 # Or None
+            return None  # Return None, not 0.0, to prevent false zero-price orders
             
         # 3. For others, try REST first (immediate), fallback to WS
         try:
@@ -402,7 +402,7 @@ class KotakBroker:
         except Exception as e:
             self.logger.error(f"REST Quote Exception {symbol}: {e}")
             
-        return self.ltp_cache.get(token, 0.0)
+        return self.ltp_cache.get(token)  # Returns None if not found, not 0.0
 
     def place_order(self, symbol, qty, side, order_type='MARKET', price=0.0, product='MIS'):
         """

@@ -6,6 +6,7 @@ import Performance from './components/dashboard/Performance';
 import Settings from './components/dashboard/Settings';
 import StrategyReport from './components/dashboard/StrategyReport';
 import Login from './components/Login';
+import StartupSequence from './components/layout/StartupSequence';
 import { motion, AnimatePresence } from 'framer-motion';
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
 
   // Auth State
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
@@ -27,95 +29,104 @@ function App() {
     setSelectedStrategy(data);
   };
 
-  if (!isLoggedIn) {
-    return <Login onLogin={() => setIsLoggedIn(true)} />;
-  }
-
   return (
     <div className="min-h-screen w-full bg-[var(--bg-color)] text-[var(--text-color)] flex flex-col selection:bg-[#007aff]/30 transition-colors duration-500">
 
+      <AnimatePresence>
+        {isInitializing && (
+          <StartupSequence onComplete={() => setIsInitializing(false)} />
+        )}
+      </AnimatePresence>
 
-      {/* Floating Island Navigation */}
-      <TopBar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        tradingMode={tradingMode}
-        onToggleMode={setTradingMode}
-      />
+      {!isInitializing && !isLoggedIn && (
+        <Login onLogin={() => setIsLoggedIn(true)} />
+      )}
 
-      <main className="flex-1 w-full relative pt-32 pb-20">
-        <div className="max-w-[1240px] mx-auto px-6">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab + tradingMode}
-              initial={{ opacity: 0, scale: 0.98, filter: 'blur(10px)' }}
-              animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, scale: 1.02, filter: 'blur(10px)' }}
-              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            >
-              {activeTab === 'Dashboard' && (
-                <Dashboard
-                  onOpenBlueprint={handleOpenBlueprint}
-                  tradingMode={tradingMode}
-                />
-              )}
-              {activeTab === 'Strategies' && (
-                <Strategies
-                  onOpenBlueprint={handleOpenBlueprint}
-                  tradingMode={tradingMode}
-                />
-              )}
-              {activeTab === 'Performance' && (
-                <Performance tradingMode={tradingMode} />
-              )}
-              {activeTab === 'Settings' && (
-                <Settings
-                  isDarkMode={isDarkMode}
-                  onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-                />
-              )}
-              {activeTab === 'Intelligence' && (
-                <div className="min-h-[60vh] flex items-center justify-center">
-                  <div className="text-center space-y-8">
-                    <h2 className="text-[60px] md:text-[120px] font-extrabold tracking-tighter opacity-10">BRAIN</h2>
-                    <h3 className="text-4xl font-bold tracking-tight">Intelligence Experience</h3>
-                    <p className="text-[var(--text-muted)] text-xl max-w-lg mx-auto font-medium">
-                      The neural core is currently optimizing for the next market session. Expanded insights coming shortly.
-                    </p>
-                  </div>
-                </div>
-              )}
-              {!['Dashboard', 'Strategies', 'Performance', 'Settings', 'Intelligence'].includes(activeTab) && (
-                <div className="min-h-[60vh] flex items-center justify-center">
-                  <div className="text-center space-y-8">
-                    <h2 className="text-[60px] md:text-[120px] font-extrabold tracking-tighter opacity-10">COMING</h2>
-                    <h3 className="text-4xl font-bold tracking-tight">{activeTab} Experience</h3>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </main>
+      {!isInitializing && isLoggedIn && (
+        <>
+          {/* Floating Island Navigation */}
+          <TopBar
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            tradingMode={tradingMode}
+            onToggleMode={setTradingMode}
+          />
 
-      {/* macOS style Dock */}
-      <Dock activeTab={activeTab} setActiveTab={setActiveTab} />
+          <main className="flex-1 w-full relative pt-32 pb-20">
+            <div className="max-w-[1240px] mx-auto px-6">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab + tradingMode}
+                  initial={{ opacity: 0, scale: 0.98, filter: 'blur(10px)' }}
+                  animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, scale: 1.02, filter: 'blur(10px)' }}
+                  transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  {activeTab === 'Dashboard' && (
+                    <Dashboard
+                      onOpenBlueprint={handleOpenBlueprint}
+                      tradingMode={tradingMode}
+                    />
+                  )}
+                  {activeTab === 'Strategies' && (
+                    <Strategies
+                      onOpenBlueprint={handleOpenBlueprint}
+                      tradingMode={tradingMode}
+                    />
+                  )}
+                  {activeTab === 'Performance' && (
+                    <Performance tradingMode={tradingMode} />
+                  )}
+                  {activeTab === 'Settings' && (
+                    <Settings
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                    />
+                  )}
+                  {activeTab === 'Intelligence' && (
+                    <div className="min-h-[60vh] flex items-center justify-center">
+                      <div className="text-center space-y-8">
+                        <h2 className="text-[60px] md:text-[120px] font-extrabold tracking-tighter opacity-10">BRAIN</h2>
+                        <h3 className="text-4xl font-bold tracking-tight">Intelligence Experience</h3>
+                        <p className="text-[var(--text-muted)] text-xl max-w-lg mx-auto font-medium">
+                          The neural core is currently optimizing for the next market session. Expanded insights coming shortly.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {!['Dashboard', 'Strategies', 'Performance', 'Settings', 'Intelligence'].includes(activeTab) && (
+                    <div className="min-h-[60vh] flex items-center justify-center">
+                      <div className="text-center space-y-8">
+                        <h2 className="text-[60px] md:text-[120px] font-extrabold tracking-tighter opacity-10">COMING</h2>
+                        <h3 className="text-4xl font-bold tracking-tight">{activeTab} Experience</h3>
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </main>
 
-      {/* Deep-Dive Project Blueprint */}
-      <StrategyReport
-        isOpen={!!selectedStrategy}
-        onClose={() => setSelectedStrategy(null)}
-        strategyData={selectedStrategy}
-      />
+          {/* macOS style Dock */}
+          <Dock activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      {/* Ambient Backdrop Logic */}
-      <motion.div
-        animate={{
-          opacity: tradingMode === 'REAL' ? 0.4 : 0,
-          background: 'radial-gradient(circle at 50% 0%, #007aff20, transparent 70%)'
-        }}
-        className="fixed inset-0 pointer-events-none z-[-1]"
-      />
+          {/* Deep-Dive Project Blueprint */}
+          <StrategyReport
+            isOpen={!!selectedStrategy}
+            onClose={() => setSelectedStrategy(null)}
+            strategyData={selectedStrategy}
+          />
+
+          {/* Ambient Backdrop Logic */}
+          <motion.div
+            animate={{
+              opacity: tradingMode === 'REAL' ? 0.4 : 0,
+              background: 'radial-gradient(circle at 50% 0%, #007aff20, transparent 70%)'
+            }}
+            className="fixed inset-0 pointer-events-none z-[-1]"
+          />
+        </>
+      )}
 
     </div>
   );

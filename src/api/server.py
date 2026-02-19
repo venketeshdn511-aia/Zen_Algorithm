@@ -128,6 +128,9 @@ def get_balance():
         if engine is None:
             return jsonify({'status': 'initializing', 'balance': 0, 'message': 'Engine starting...'})
         
+        if not engine.broker or not hasattr(engine.broker, 'connected'):
+            return jsonify({'status': 'error', 'balance': 0, 'message': 'Broker not available'})
+        
         mode = request.args.get('mode', 'PAPER').upper()
         
         if mode == 'REAL':
@@ -136,14 +139,17 @@ def get_balance():
                     engine.broker.connect()
                 except Exception:
                     pass  # Auto-reconnect thread will handle this
-            balance = engine.broker.get_real_balance()
+            if hasattr(engine.broker, 'get_real_balance'):
+                balance = engine.broker.get_real_balance()
+            else:
+                balance = engine.broker.get_account_balance() if hasattr(engine.broker, 'get_account_balance') else 0
         else:
-            balance = engine.broker.get_account_balance()
+            balance = engine.broker.get_account_balance() if hasattr(engine.broker, 'get_account_balance') else 0
             
         return jsonify({
             'status': 'success', 
             'balance': balance,
-            'broker_connected': engine.broker.connected
+            'broker_connected': getattr(engine.broker, 'connected', False)
         })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e), 'balance': 0}), 500
@@ -203,12 +209,14 @@ def save_token():
                 except Exception as e:
                     print(f" [API] DB token save failed: {e}")
             
-            if engine.validate_token(token):
+            if engine and engine.validate_token(token):
                 engine.running = True
                 if not any(t.name == 'trading_loop' for t in threading.enumerate()):
                     thread = threading.Thread(target=engine.run, daemon=True, name='trading_loop')
                     thread.start()
                 return jsonify({'status': 'success', 'message': 'Token saved & Bot started!'})
+            elif engine is None:
+                return jsonify({'status': 'warning', 'message': 'Token saved to file but engine not yet initialized'})
             else:
                 return jsonify({'status': 'error', 'message': 'Invalid token or connection failed'})
         except Exception as e:
@@ -465,7 +473,7 @@ def handle_settings():
                 return jsonify({'status': 'success', 'message': 'Settings saved & applied'})
             except Exception as e: return jsonify({'status': 'error', 'message': str(e)}), 500
         else:
-            if 'max_risk' in data:
+            if engine and 'max_risk' in data:
                 new_risk = float(data['max_risk'])
                 for strat in engine.strategies:
                     if hasattr(strat, 'risk_pct'): strat.risk_pct = new_risk / 100.0

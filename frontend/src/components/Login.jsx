@@ -1,9 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, User, Key, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Lock, User, Key, ShieldCheck, ArrowRight, Camera, UserCheck, RefreshCcw, Scan } from 'lucide-react';
+import * as faceapi from 'face-api.js';
 
 const Login = ({ onLogin }) => {
-    const [mode, setMode] = useState('LOGIN'); // LOGIN | RESET
+    const [mode, setMode] = useState('LOGIN'); // LOGIN | RESET | FACE_ID
+    const [faceStatus, setFaceStatus] = useState('IDLE'); // IDLE | LOADING | READY | SCANNING | REGISTERING | SUCCESS | ERROR
+    const [isModelsLoaded, setIsModelsLoaded] = useState(false);
+    const [registeredDescriptor, setRegisteredDescriptor] = useState(null);
+    const videoRef = useRef(null);
+    const canvasRef = useRef(null);
+    const detectionTimeoutRef = useRef(null);
+
     const [formData, setFormData] = useState({
         username: '',
         password: '',
@@ -18,6 +26,109 @@ const Login = ({ onLogin }) => {
         USER: 'DACCHU VINAY',
         PASS: 'DACCHUVINAY8310268127',
         PAN_ANSWER: 'COWPV8951F'
+    };
+
+    useEffect(() => {
+        const loadModels = async () => {
+            setFaceStatus('LOADING');
+            try {
+                // Loading models from CDN
+                const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                ]);
+
+                // Check for existing registration
+                const saved = localStorage.getItem('zen_algo_face_descriptor');
+                if (saved) {
+                    setRegisteredDescriptor(new Float32Array(JSON.parse(saved)));
+                }
+
+                setIsModelsLoaded(true);
+                setFaceStatus('READY');
+            } catch (err) {
+                console.error("FaceAPI Models Load Failed:", err);
+                setFaceStatus('ERROR');
+            }
+        };
+        loadModels();
+        return () => {
+            if (detectionTimeoutRef.current) clearTimeout(detectionTimeoutRef.current);
+            stopVideo();
+        };
+    }, []);
+
+    const startVideo = async () => {
+        setFaceStatus('SCANNING');
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
+        } catch (err) {
+            setError('CAMERA ACCESS DENIED');
+            setFaceStatus('ERROR');
+        }
+    };
+
+    const stopVideo = () => {
+        if (videoRef.current && videoRef.current.srcObject) {
+            videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+        }
+    };
+
+    const handleFaceLogin = async () => {
+        if (!isModelsLoaded || !videoRef.current) return;
+
+        // Optimized options for performance
+        const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 128, scoreThreshold: 0.5 });
+
+        const detect = async () => {
+            if (faceStatus !== 'SCANNING' && faceStatus !== 'REGISTERING' && mode !== 'FACE_ID') return;
+            if (!videoRef.current) return;
+
+            try {
+                const detection = await faceapi.detectSingleFace(videoRef.current, options)
+                    .withFaceLandmarks()
+                    .withFaceDescriptor();
+
+                if (detection) {
+                    if (faceStatus === 'REGISTERING') {
+                        // Success: Register Face
+                        const descArray = Array.from(detection.descriptor);
+                        localStorage.setItem('zen_algo_face_descriptor', JSON.stringify(descArray));
+                        setRegisteredDescriptor(detection.descriptor);
+                        setFaceStatus('SUCCESS');
+                        setSuccess('FACIAL PATTERN REGISTERED');
+                        setTimeout(() => setFaceStatus('READY'), 2000);
+                    } else if (registeredDescriptor) {
+                        // Accuracy Check
+                        const distance = faceapi.euclideanDistance(detection.descriptor, registeredDescriptor);
+                        if (distance < 0.5) { // Confidence threshold (0.6 is default, 0.45 is strict)
+                            setFaceStatus('SUCCESS');
+                            setSuccess('BIOMETRIC IDENTITY CONFIRMED');
+                            stopVideo();
+                            setTimeout(() => onLogin(), 1500);
+                            return; // Stop loop
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Detection Error:", err);
+            }
+
+            // Recursive call instead of setInterval to prevent overlap/hang
+            detectionTimeoutRef.current = setTimeout(detect, 200);
+        };
+
+        detect();
+    };
+
+    const registerFace = () => {
+        setFaceStatus('REGISTERING');
+        startVideo();
     };
 
     const handleInput = (e) => {
@@ -40,7 +151,7 @@ const Login = ({ onLogin }) => {
             } else {
                 setError('INVALID CREDENTIALS. ACCESS DENIED.');
             }
-        } else {
+        } else if (mode === 'RESET') {
             // Reset Mode
             if (formData.panAnswer === CREDENTIALS.PAN_ANSWER) {
                 setSuccess('IDENTITY VERIFIED. PASSWORD RESET SIMULATED.');
@@ -102,117 +213,232 @@ const Login = ({ onLogin }) => {
                             <ShieldCheck className="w-10 h-10 text-blue-400 -rotate-12" />
                         </motion.div>
                         <h2 className="text-3xl font-bold tracking-tighter text-white mb-2">
-                            {mode === 'LOGIN' ? 'AUTHENTICATION' : 'RECOVERY'}
+                            {mode === 'LOGIN' ? 'AUTHENTICATION' : mode === 'RESET' ? 'RECOVERY' : 'BIOMETRIC SCAN'}
                         </h2>
                         <p className="text-white/40 text-xs tracking-[0.2em] font-black uppercase">
-                            {mode === 'LOGIN' ? 'AUTHORIZED ACCESS ONLY' : 'IDENTITY VERIFICATION'}
+                            {mode === 'LOGIN' ? 'AUTHORIZED ACCESS ONLY' : mode === 'RESET' ? 'IDENTITY VERIFICATION' : 'FACIAL PATTERN RECOGNITION'}
                         </p>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <AnimatePresence mode="wait">
-                            {mode === 'LOGIN' ? (
+                    {mode === 'FACE_ID' ? (
+                        <div className="space-y-8">
+                            <div className="relative aspect-square w-full max-w-[280px] mx-auto overflow-hidden rounded-[40px] border border-white/10 bg-black shadow-2xl">
+                                <video
+                                    ref={videoRef}
+                                    autoPlay
+                                    muted
+                                    onPlay={() => handleFaceLogin()}
+                                    className="w-full h-full object-cover scale-x-[-1]"
+                                />
+                                <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />
+
+                                <AnimatePresence>
+                                    {faceStatus === 'SCANNING' && (
+                                        <motion.div
+                                            initial={{ top: '0%' }}
+                                            animate={{ top: '100%' }}
+                                            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                                            className="absolute left-0 w-full h-[2px] bg-blue-500 shadow-[0_0_20px_#3b82f6] z-10"
+                                        />
+                                    )}
+                                </AnimatePresence>
+
+                                {faceStatus === 'LOADING' && (
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md space-y-4">
+                                        <RefreshCcw className="w-8 h-8 text-blue-500 animate-spin" />
+                                        <p className="text-[10px] text-white/40 font-black tracking-widest">LOADING NEURAL MODELS...</p>
+                                    </div>
+                                )}
+
+                                {faceStatus === 'READY' && (
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm space-y-4">
+                                        {registeredDescriptor ? (
+                                            <>
+                                                <button
+                                                    onClick={() => startVideo()}
+                                                    className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+                                                >
+                                                    <Camera className="w-8 h-8 text-white" />
+                                                </button>
+                                                <p className="text-[10px] text-white/60 font-black tracking-widest">TAP TO INITIALIZE SCANNER</p>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <button
+                                                    onClick={() => registerFace()}
+                                                    className="w-16 h-16 bg-emerald-600 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+                                                >
+                                                    <UserCheck className="w-8 h-8 text-white" />
+                                                </button>
+                                                <p className="text-[10px] text-emerald-400 font-black tracking-widest">NO FACE REGISTERED. TAP TO ENROLL.</p>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+
+                                {faceStatus === 'SUCCESS' && (
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-emerald-600/20 backdrop-blur-md">
+                                        <motion.div
+                                            initial={{ scale: 0 }}
+                                            animate={{ scale: 1 }}
+                                            className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.5)]"
+                                        >
+                                            <ShieldCheck className="w-8 h-8 text-white" />
+                                        </motion.div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="flex items-center gap-2 text-[10px] font-black tracking-widest uppercase">
+                                    <Scan className={`w-4 h-4 ${['SCANNING', 'REGISTERING'].includes(faceStatus) ? 'text-blue-500 animate-pulse' : 'text-white/20'}`} />
+                                    <span className={['SCANNING', 'REGISTERING'].includes(faceStatus) ? 'text-blue-400' : 'text-white/40'}>
+                                        {faceStatus === 'SCANNING' ? 'ANALYZING FACIAL MESH...' :
+                                            faceStatus === 'REGISTERING' ? 'ENROLLING NEURAL PATTERN...' : 'SENSOR IDLE'}
+                                    </span>
+                                </div>
+                                <div className="flex gap-4">
+                                    <button
+                                        onClick={() => { setMode('LOGIN'); stopVideo(); }}
+                                        className="text-[10px] text-white/20 hover:text-white/50 transition-colors uppercase tracking-[0.2em] font-black"
+                                    >
+                                        Switch to Passkey
+                                    </button>
+                                    {registeredDescriptor && faceStatus === 'READY' && (
+                                        <button
+                                            onClick={() => { localStorage.removeItem('zen_algo_face_descriptor'); setRegisteredDescriptor(null); }}
+                                            className="text-[10px] text-red-500/30 hover:text-red-500 transition-colors uppercase tracking-[0.2em] font-black"
+                                        >
+                                            Reset Face
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <AnimatePresence mode="wait">
+                                {mode === 'LOGIN' ? (
+                                    <motion.div
+                                        key="login-fields"
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: 20 }}
+                                        className="space-y-4"
+                                    >
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] uppercase tracking-[0.2em] text-white/30 font-black ml-1">Terminal Identity</label>
+                                            <div className="relative">
+                                                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
+                                                <input
+                                                    type="text"
+                                                    name="username"
+                                                    value={formData.username}
+                                                    onChange={handleInput}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder-white/10 focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all font-mono text-sm"
+                                                    placeholder="UID-XXXX-XXXX"
+                                                    autoComplete="off"
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] uppercase tracking-[0.2em] text-white/30 font-black ml-1">Access Protocol</label>
+                                            <div className="relative">
+                                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
+                                                <input
+                                                    type="password"
+                                                    name="password"
+                                                    value={formData.password}
+                                                    onChange={handleInput}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder-white/10 focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all font-mono text-sm"
+                                                    placeholder="••••••••••••"
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ) : (
+                                    <motion.div
+                                        key="reset-fields"
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        className="space-y-6"
+                                    >
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] uppercase tracking-[0.2em] text-white/30 font-black ml-1">Security Question</label>
+                                            <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-2xl text-white/60 text-sm font-medium">
+                                                "Verify your Permanent Account Number"
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] uppercase tracking-[0.2em] text-white/30 font-black ml-1">Verification Token</label>
+                                            <div className="relative">
+                                                <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
+                                                <input
+                                                    type="text"
+                                                    name="panAnswer"
+                                                    value={formData.panAnswer}
+                                                    onChange={handleInput}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder-white/10 focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all font-mono text-sm"
+                                                    placeholder="ENTER PAN VALUE"
+                                                    autoComplete="off"
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            {error && (
                                 <motion.div
-                                    key="login-fields"
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: 20 }}
-                                    className="space-y-4"
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="text-red-400 text-[10px] font-black tracking-widest text-center bg-red-500/10 p-4 rounded-2xl border border-red-500/20 uppercase"
                                 >
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] uppercase tracking-[0.2em] text-white/30 font-black ml-1">Terminal Identity</label>
-                                        <div className="relative">
-                                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
-                                            <input
-                                                type="text"
-                                                name="username"
-                                                value={formData.username}
-                                                onChange={handleInput}
-                                                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder-white/10 focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all font-mono text-sm"
-                                                placeholder="UID-XXXX-XXXX"
-                                                autoComplete="off"
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] uppercase tracking-[0.2em] text-white/30 font-black ml-1">Access Protocol</label>
-                                        <div className="relative">
-                                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
-                                            <input
-                                                type="password"
-                                                name="password"
-                                                value={formData.password}
-                                                onChange={handleInput}
-                                                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder-white/10 focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all font-mono text-sm"
-                                                placeholder="••••••••••••"
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            ) : (
-                                <motion.div
-                                    key="reset-fields"
-                                    initial={{ opacity: 0, x: 20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -20 }}
-                                    className="space-y-6"
-                                >
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] uppercase tracking-[0.2em] text-white/30 font-black ml-1">Security Question</label>
-                                        <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-2xl text-white/60 text-sm font-medium">
-                                            "Verify your Permanent Account Number"
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] uppercase tracking-[0.2em] text-white/30 font-black ml-1">Verification Token</label>
-                                        <div className="relative">
-                                            <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
-                                            <input
-                                                type="text"
-                                                name="panAnswer"
-                                                value={formData.panAnswer}
-                                                onChange={handleInput}
-                                                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder-white/10 focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all font-mono text-sm"
-                                                placeholder="ENTER PAN VALUE"
-                                                autoComplete="off"
-                                                required
-                                            />
-                                        </div>
-                                    </div>
+                                    {error}
                                 </motion.div>
                             )}
-                        </AnimatePresence>
 
-                        {error && (
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                className="text-red-400 text-[10px] font-black tracking-widest text-center bg-red-500/10 p-4 rounded-2xl border border-red-500/20 uppercase"
+                            {success && (
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="text-emerald-400 text-[10px] font-black tracking-widest text-center bg-emerald-500/10 p-4 rounded-2xl border border-emerald-500/20 uppercase"
+                                >
+                                    {success}
+                                </motion.div>
+                            )}
+
+                            <button
+                                type="submit"
+                                className="w-full py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-xs tracking-[0.3em] transition-all shadow-[0_20px_40px_rgba(37,99,235,0.2)] hover:shadow-[0_25px_50px_rgba(37,99,235,0.3)] hover:-translate-y-1 active:scale-[0.98] flex items-center justify-center gap-3"
                             >
-                                {error}
-                            </motion.div>
-                        )}
+                                {mode === 'LOGIN' ? 'INITIALIZE SESSION' : 'EXECUTE VERIFICATION'}
+                                <ArrowRight className="w-4 h-4" />
+                            </button>
 
-                        {success && (
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                className="text-emerald-400 text-[10px] font-black tracking-widest text-center bg-emerald-500/10 p-4 rounded-2xl border border-emerald-500/20 uppercase"
-                            >
-                                {success}
-                            </motion.div>
-                        )}
+                            {mode === 'LOGIN' && (
+                                <div className="relative py-4">
+                                    <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5"></div></div>
+                                    <div className="relative flex justify-center"><span className="bg-[#050505] px-4 text-[10px] text-white/10 font-bold tracking-[0.3em]">OR</span></div>
+                                </div>
+                            )}
 
-                        <button
-                            type="submit"
-                            className="w-full py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-xs tracking-[0.3em] transition-all shadow-[0_20px_40px_rgba(37,99,235,0.2)] hover:shadow-[0_25px_50px_rgba(37,99,235,0.3)] hover:-translate-y-1 active:scale-[0.98] flex items-center justify-center gap-3"
-                        >
-                            {mode === 'LOGIN' ? 'INITIALIZE SESSION' : 'EXECUTE VERIFICATION'}
-                            <ArrowRight className="w-4 h-4" />
-                        </button>
-                    </form>
+                            {mode === 'LOGIN' && (
+                                <button
+                                    type="button"
+                                    onClick={() => { setMode('FACE_ID') }}
+                                    className="w-full py-4 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-2xl font-black text-[10px] tracking-[0.3em] transition-all flex items-center justify-center gap-3"
+                                >
+                                    <UserCheck className="w-4 h-4 text-blue-400" />
+                                    FACE ID AUTHENTICATION
+                                </button>
+                            )}
+                        </form>
+                    )}
 
                     <div className="mt-8 text-center">
                         <button
